@@ -1,8 +1,8 @@
 package org.kr.cpu
 
 @main
-def main(): Unit =
-  println("Hello world!")
+def main(args: String*): Unit =
+  println("Main CPU function doing nothing")
 
 case class Cpu(handler:CpuHandler,register:Register):
   def reset: Cpu = handler.reset(this)

@@ -46,6 +46,15 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("new PC value is equal to old value increased by 1")
       assert(pcInc==pcInit+1)
 
+    Scenario("overflow PC"):
+      Given("a cpu instance in random state and PC set to maximum value")
+      val cpuInit = createRandomStateCpu.setPc(0xFFFF.toShort)
+      assert(cpuInit.pc == -1) //NOTE: this is a signed type
+      When("PC is increased")
+      val cpuIncPC = cpuInit.incPC
+      Then("new PC value is 0")
+      assert(cpuIncPC.pc == 0x0000)
+
     Scenario("increase SP"):
       Given("a cpu instance in random state")
       val cpuInit = createRandomStateCpu.setSp(0x5432.toShort)
@@ -56,22 +65,38 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("new SP value is equal to old value increased by 1")
       assert(spInc == spInit + 1)
 
-  Scenario("decrease SP"):
-    Given("a cpu instance in random state")
-    val cpuInit = createRandomStateCpu.setSp(0x8765.toShort)
-    val spInit = cpuInit.sp
-    When("SP is decreased")
-    val cpuDecSP = cpuInit.decSP
-    val spInc = cpuDecSP.sp
-    Then("new SP value is equal to old value decreased by 1")
-    assert(spInc == spInit - 1)
+    Scenario("overflow SP when increasing"):
+      Given("a cpu instance in random state and SP set to maximum value")
+      val cpuInit = createRandomStateCpu.setSp(0xFFFF.toShort)
+      When("SP is increased")
+      val cpuIncSP = cpuInit.incSP
+      Then("new SP value is 0")
+      assert(cpuIncSP.sp == 0x0000)
+
+    Scenario("decrease SP"):
+      Given("a cpu instance in random state")
+      val cpuInit = createRandomStateCpu.setSp(0x8765.toShort)
+      val spInit = cpuInit.sp
+      When("SP is decreased")
+      val cpuDecSP = cpuInit.decSP
+      val spInc = cpuDecSP.sp
+      Then("new SP value is equal to old value decreased by 1")
+      assert(spInc == spInit - 1)
+
+    Scenario("overflow SP when decreasing"):
+      Given("a cpu instance in random state and SP set to 0")
+      val cpuInit = createRandomStateCpu.setSp(0.toShort)
+      When("SP is decreased")
+      val cpuDecSP = cpuInit.decSP
+      Then("new SP value is 0xFFFF (-1)")
+      assert(cpuDecSP.sp == -1)
 
 
   private def createRandomStateCpu:Cpu =
-    (1 to 100).foldLeft(testCpuHandler.create)({ case(cpu, _) =>
-      (for {
+    (1 to 100).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
+      (for
         index <- registerIndexGen.sample
         value <- registerValueGen.sample
-      } yield cpu.setReg(index,value))
+      yield cpu.setReg(index, value))
         .getOrElse(cpu)
     })
