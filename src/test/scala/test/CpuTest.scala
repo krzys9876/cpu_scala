@@ -2,20 +2,25 @@ package org.kr.cpu
 package test
 
 import org.scalacheck.Gen
+import org.scalactic.anyvals.PosZInt
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
+import org.scalacheck.Shrink.shrinkAny //NOTE: this is necessary to properly use Gen: https://gist.github.com/davidallsopp/f65d73fea8b5e5165fc3
+
 
 class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
 
-  val registerIndexGen:Gen[Short] = Gen.choose(0,15)
+  val registerIndexGen:Gen[Short] = Gen.choose(0.toShort,15.toShort)
   val addressGen:Gen[Int] = Gen.choose(0,0xFFFF)
-  val valueGen:Gen[Short] = Gen.choose(-0x8000,0x7FFF)
+  val valueGen:Gen[Short] = Gen.choose((-0x8000).toShort,0x7FFF.toShort)
 
+  val smallPositiveValueGen:Gen[Short] = Gen.choose(1.toShort,0x3FFF.toShort)
+  val largePositiveValueGen:Gen[Short] = Gen.choose(0x4000.toShort,0x7FFF.toShort)
 
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
-    PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0)
+    PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
 
   Feature("CPU reset sequence"):
     Scenario("reset CPU"):
@@ -36,7 +41,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       forAll(registerIndexGen,valueGen):
         (index, value) =>
           val cpuSet = cpuInit.setReg(index,value)
-          cpuSet.register(index)==value
+          assert(cpuSet.register(index)==value)
 
     Scenario("increase PC"):
       Given("a cpu instance in random state")
@@ -104,6 +109,49 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("value is the same as previously initialized")
       memoryPairs.foreach(pair => assert(cpuMem.memory(pair._1) == pair._2))
 
+  Feature("ALU operations"):
+    Scenario("add w/o carry"):
+      Given("two different (small) positive numbers")
+      When("added")
+      Then("result is sum and flags are off")
+      forAll(smallPositiveValueGen,smallPositiveValueGen):
+        (a, b) => assert(Alu(a,b,0xFFFF.toShort,AluOp.Add) == (a+b,0xFFF8.toShort))
+
+    Scenario("add the same numbers with opposite signs"):
+      Given("a (small) positive number")
+      When("the same numbers are added with opposite signs")
+      Then("result is 0 and zero flag is set")
+      forAll(smallPositiveValueGen):
+        a => assert(Alu(a, (-a).toShort, 0xFF00.toShort, AluOp.Add) == (0, 0xFF01.toShort))
+
+    Scenario("add with carry"):
+      Given("two different (large) positive numbers")
+      When("added")
+      Then("result is sum trimmed to 16b and carry flag is set")
+      //NOTE: forAll may sometimes not respect Gen min/max values due to defect in ScalaCheck
+      forAll(largePositiveValueGen, largePositiveValueGen):
+        (a, b) => assert(Alu(a,b,0xFF00.toShort,AluOp.Add) == ((a+b).toShort,0xFF04.toShort))
+
+  Scenario("add negative numbers w/o borrow"):
+    Given("two different (small) negative numbers")
+    When("added")
+    Then("result is (negative) sum trimmed to 16b and flags are off")
+    forAll(smallPositiveValueGen, smallPositiveValueGen):
+      (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((-(a + b)).toShort, 0xFF00.toShort))
+
+  Scenario("add negative numbers with borrow"):
+    Given("two different (large) negative numbers")
+    When("added")
+    Then("result is sum trimmed to (positive) 16b and borrow flag is set")
+    forAll(largePositiveValueGen, largePositiveValueGen):
+      (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((-(a + b)).toShort, 0xFF02.toShort))
+
+  Scenario("add large numbers with opposite signs"):
+    Given("two different (large) numbers with opposite signs")
+    When("added")
+    Then("result is sum trimmed to 16b and flags are off")
+    forAll(largePositiveValueGen, largePositiveValueGen):
+      (a, b) => assert(Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((a - b).toShort, 0xFF00.toShort))
 
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
