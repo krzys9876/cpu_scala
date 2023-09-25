@@ -61,21 +61,17 @@ enum AluOp:
 
 object Alu:
   def apply(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
-    val result:Short = op match {
-      case AluOp.Add => (a + b).toShort
-      case AluOp.Sub => (a - b).toShort
-    }
-    val carry = op match {
-      case AluOp.Add => (a>0 && b>0) && result < 0
-      case AluOp.Sub => false
-    }
-    val borrow = op match {
-      case AluOp.Add => (a<0 && b<0) && result > 0
-      case AluOp.Sub => b > a && result > 0
-    }
+    op match
+      case AluOp.Add => add(a,b,f)
+      case AluOp.Sub => add(a,(-b).toShort,f)
+
+  private def add(a: Short, b: Short, f: Short):(Short,Short) =
+    val result = (a + b).toShort
+    val carry = (a > 0 && b > 0) && result < 0
+    val borrow = (a < 0 && b < 0) && result > 0
     val zero = result == 0
     val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
     println(f"a $a b $b r $result f $newF $newF%04X")
     (result, newF.toShort)
 
-  private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
+private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0

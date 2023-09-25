@@ -6,7 +6,6 @@ import org.scalactic.anyvals.PosZInt
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import org.scalacheck.Shrink.shrinkAny //NOTE: this is necessary to properly use Gen: https://gist.github.com/davidallsopp/f65d73fea8b5e5165fc3
 
 
 class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
@@ -16,11 +15,15 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
   val addressGen:Gen[Int] = Gen.choose(0,0xFFFF)
   val valueGen:Gen[Short] = Gen.choose((-0x8000).toShort,0x7FFF.toShort)
 
+  // NOTE: forAll after first failed test may ignore conditions in generator
+  // Always verify the first failed test
   val smallPositiveValueGen:Gen[Short] = Gen.choose(1.toShort,0x3FFF.toShort)
   val largePositiveValueGen:Gen[Short] = Gen.choose(0x4000.toShort,0x7FFF.toShort)
+  val anyValueGen:Gen[Short] = Gen.choose(Short.MinValue,Short.MaxValue)
 
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
+
 
   Feature("CPU reset sequence"):
     Scenario("reset CPU"):
@@ -152,6 +155,13 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     Then("result is sum trimmed to 16b and flags are off")
     forAll(largePositiveValueGen, largePositiveValueGen):
       (a, b) => assert(Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((a - b).toShort, 0xFF00.toShort))
+
+  Scenario("express Sub as Add with second operand negated"):
+    Given("two different numbers")
+    When("subtracted")
+    Then("result is the same as sum with second operand negated")
+    forAll(anyValueGen, anyValueGen):
+      (a, b) => assert(Alu(a, b, 0xFF00.toShort, AluOp.Sub) == Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add))
 
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
