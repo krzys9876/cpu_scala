@@ -4,7 +4,7 @@ package org.kr.cpu
 def main(args: String*): Unit =
   println("Main CPU function doing nothing")
 
-case class Cpu(handler:CpuHandler,register:Register):
+case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def reset: Cpu = handler.reset(this)
   // predefined registers
   def pc: Short = register(0)
@@ -17,19 +17,23 @@ case class Cpu(handler:CpuHandler,register:Register):
   def incPC: Cpu = setPc((pc + 1).toShort)
   def incSP: Cpu = setSp((sp + 1).toShort)
   def decSP: Cpu = setSp((sp - 1).toShort)
+  def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
 
 trait CpuHandler:
   def create: Cpu
   def reset(cpu: Cpu): Cpu
-  def setReg(cpu: Cpu, index:Int,value:Short): Cpu
+  def setReg(cpu: Cpu, index: Int, value: Short): Cpu
+  def writeMemory(cpu:Cpu, address: Int, value: Short): Cpu
 
 object CpuHandlerImmutable extends CpuHandler:
-  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs)
+  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory)
   override def reset(cpu: Cpu): Cpu = cpu.copy(register = emptyRegs)
   override def setReg(cpu: Cpu, index: Int, value: Short): Cpu = cpu.copy(register = cpu.register.set(index, value))
+  override def writeMemory(cpu: Cpu, address: Int, value: Short): Cpu = cpu.copy(memory = cpu.memory.write(address,value))
 
 
   private def emptyRegs: Register = RegisterImmutable.empty
+  private def emptyMemory: Memory = MemoryImmutable()
 
 trait Register:
   def apply(index:Int):Short
@@ -43,3 +47,11 @@ case class RegisterImmutable(r:Vector[Short]) extends Register:
 
 object RegisterImmutable:
   def empty: Register = new RegisterImmutable(Vector.fill(16)(0))
+
+trait Memory:
+  def apply(address:Int):Short
+  def write(address:Int, value:Short):Memory
+
+case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toShort)) extends Memory:
+  override def apply(address: Int): Short = m(address & 0xFFFF)
+  override def write(address: Int, value: Short): Memory = copy(m = m.updated(address, value))

@@ -10,7 +10,9 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
 
   val registerIndexGen:Gen[Short] = Gen.choose(0,15)
-  val registerValueGen:Gen[Short] = Gen.choose(-0x8000,0x7FFF)
+  val addressGen:Gen[Int] = Gen.choose(0,0xFFFF)
+  val valueGen:Gen[Short] = Gen.choose(-0x8000,0x7FFF)
+
 
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0)
@@ -31,7 +33,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       val cpuInit = createRandomStateCpu
       When("a register is set to a given value")
       Then("the same value can be read from register")
-      forAll(registerIndexGen,registerValueGen):
+      forAll(registerIndexGen,valueGen):
         (index, value) =>
           val cpuSet = cpuInit.setReg(index,value)
           cpuSet.register(index)==value
@@ -91,12 +93,38 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("new SP value is 0xFFFF (-1)")
       assert(cpuDecSP.sp == -1)
 
+  Feature("memory operations"):
+    Scenario("read from / write to memory"):
+      Given("a cpu instance in random state")
+      And("memory instance initialized with some values at some addresses")
+      val cpuInit = createRandomStateCpu
+      val memoryPairs = generateMemoryContents
+      val cpuMem = memoryPairs.foldLeft(cpuInit)({case (cpu,pair) => cpu.writeMemory(pair._1,pair._2) })
+      When("the same address is read from memory")
+      Then("value is the same as previously initialized")
+      memoryPairs.foreach(pair => assert(cpuMem.memory(pair._1) == pair._2))
+
 
   private def createRandomStateCpu:Cpu =
-    (1 to 100).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
+    val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
       (for
         index <- registerIndexGen.sample
-        value <- registerValueGen.sample
+        value <- valueGen.sample
       yield cpu.setReg(index, value))
         .getOrElse(cpu)
     })
+    // Make sure that generators actually worked (it is practically impossible not to set 3+ register in 1000 takes)
+    assert((0 to 15).count(cpu.register(_)!=0) > 3)
+    cpu
+
+  private def generateMemoryContents:Map[Int,Short] =
+    val pairs = (1 to 1000).foldLeft(Map[Int,Short]())({ case(map, _) =>
+      (for
+        address <- addressGen.sample
+        value <- valueGen.sample
+      yield map + (address -> value))
+        .getOrElse(map)
+    })
+    // Make sure that generators actually worked (it is practically impossible not to set 10+ addresses in 1000 takes)
+    assert(pairs.keys.size>10)
+    pairs
