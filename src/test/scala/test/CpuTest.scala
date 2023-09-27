@@ -191,6 +191,20 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     forAll(anyValueGen):
       _ => assert(Alu(0, 0, 0xFFFF.toShort, AluOp.Or) == (0, 0xFFFF.toShort))
 
+  Scenario("bitwise Xor"):
+    Given("two different numbers")
+    When("xor'ed")
+    Then("result is bitwise Xor")
+    forAll(anyValueGen, anyValueGen):
+      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.Xor) == (a ^ b, (0xFFFE | (if ((a ^ b) == 0) 1 else 0)).toShort))
+
+  Scenario("bitwise Xor or same numbers"):
+    Given("any same numbers")
+    When("xor'ed")
+    Then("result is 0 and zero flag is set")
+    forAll(anyValueGen):
+      a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Xor) == (0, (0xFFFF).toShort))
+
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
       (for
