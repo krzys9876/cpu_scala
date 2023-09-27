@@ -203,7 +203,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     When("xor'ed")
     Then("result is 0 and zero flag is set")
     forAll(anyValueGen):
-      a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Xor) == (0, (0xFFFF).toShort))
+      a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Xor) == (0, 0xFFFF.toShort))
 
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
