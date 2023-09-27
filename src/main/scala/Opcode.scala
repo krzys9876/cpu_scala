@@ -4,12 +4,14 @@ sealed trait Opcode:
   def code: Int
   def isLegal: Boolean = true
 
-case object LD extends Opcode {override val code:Int=0x0 }
-case object RET extends Opcode {override val code:Int=0x3 }
-case object JR extends Opcode {override val code:Int=0x4 }
-case object CALL extends Opcode {override val code:Int=0x5 }
-case object JPZ extends Opcode {override val code:Int=0x6 }
-case object JPNZ extends Opcode {override val code:Int=0x7 }
+case object LD extends Opcode {override val code:Int=0x0 } //TODO: should there be a conditional version: LDZ, LDNZ? This would replace JPZ, JPNZ (with target address in a register)
+case object RET extends Opcode {override val code:Int=0x3 } //TODO: this might be too complex to implement in a single cycle
+case object JR extends Opcode {override val code:Int=0x4 } //TODO: this should probably have conditional version: JRZ, JRNZ
+case object CALL extends Opcode {override val code:Int=0x5 } //TODO: this might be too complex to implement in a single cycle
+case object JPZ extends Opcode {override val code:Int=0x6 } //TODO: where to put the target address?
+case object JPNZ extends Opcode {override val code:Int=0x7 } //TODO: where to put the target address?
+// NOTE:
+
 
 case object ADD extends Opcode {override val code:Int=0x8 }
 case object SUB extends Opcode {override val code:Int=0xA }
