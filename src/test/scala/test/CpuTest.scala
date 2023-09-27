@@ -163,6 +163,34 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     forAll(anyValueGen, anyValueGen):
       (a, b) => assert(Alu(a, b, 0xFF00.toShort, AluOp.Sub) == Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add))
 
+  Scenario("bitwise And"):
+    Given("two different numbers")
+    When("and'ed")
+    Then("result is bitwise And")
+    forAll(anyValueGen,anyValueGen):
+      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == (a & b, (0xFFFE | (if((a & b) ==0) 1 else 0)).toShort))
+
+  Scenario("bitwise And with 0"):
+    Given("any number")
+    When("and'ed with 0")
+    Then("result is 0 and zero flag is set")
+    forAll(anyValueGen):
+      a => assert(Alu(a, 0, 0xFFFF.toShort, AluOp.And) == (0, 0xFFFF.toShort))
+
+  Scenario("bitwise Or"):
+    Given("two different numbers")
+    When("or'ed")
+    Then("result is bitwise Or")
+    forAll(anyValueGen, anyValueGen):
+      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.Or) == (a | b, (0xFFFE | (if ((a | b) == 0) 1 else 0)).toShort))
+
+  Scenario("bitwise Or of two 0s"):
+    Given("zero as both operands")
+    When("or'ed")
+    Then("result is 0 and zero flag is set")
+    forAll(anyValueGen):
+      _ => assert(Alu(0, 0, 0xFFFF.toShort, AluOp.Or) == (0, 0xFFFF.toShort))
+
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
       (for

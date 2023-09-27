@@ -57,13 +57,14 @@ case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toSh
   override def write(address: Int, value: Short): Memory = copy(m = m.updated(address, value))
 
 enum AluOp:
-  case Add, Sub
+  case Add, Sub, And, Or, Xor
 
 object Alu:
   def apply(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
     op match
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)
+      case AluOp.And | AluOp.Or | AluOp.Xor => bitwise(a,b,f,op)
 
   private def add(a: Short, b: Short, f: Short):(Short,Short) =
     val result = (a + b).toShort
@@ -73,5 +74,17 @@ object Alu:
     val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
     println(f"a $a b $b r $result f $newF $newF%04X")
     (result, newF.toShort)
+
+  private def bitwise(a: Short, b: Short, f: Short, op:AluOp):(Short,Short) =
+    val result = op match
+      case AluOp.And => a & b
+      case AluOp.Or => a | b
+      case AluOp.Xor => a ^ b
+      case _ => throw IllegalArgumentException(f"bitwise operation not supported: $op")
+
+    val zero = result == 0
+    val newF = f & 0xFFFE | bool2bit(zero)
+    println(f"a $a b $b r $result f $newF $newF%04X op: $op")
+    (result.toShort, newF.toShort)
 
 private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
