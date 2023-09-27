@@ -43,3 +43,15 @@ object AddressMode:
   val codes:Vector[AddressMode]=Vector(AddressModeIllegal(0),AddressModeIllegal(1),AddressModeIllegal(2),REGISTERS,
     REG2MEMORY,MEMORY2REG,OUTPUT_REG,INPUT_REG,IMMEDIATE_LOW,IMMEDIATE_HIGH,AddressModeIllegal(0xA),
     AddressModeIllegal(0xB),AddressModeIllegal(0xC),AddressModeIllegal(0xD),AddressModeIllegal(0xE),AddressModeIllegal(0xF))
+
+case class Instruction(value:Short):
+  // bits 0-3
+  val opcode:Opcode = Opcode.codes((value & 0x000F).toShort)
+  // bits 4-7
+  val mode:AddressMode = AddressMode.codes(((value & 0x00F0) >> 4).toShort)
+  // bits 8-15 depending on address mode
+  lazy val immediate: Short = ((value & 0xFF00) >> 8).toShort
+  // bits 8-11 depending on address mode
+  lazy val reg1: Short = ((value & 0x0F00) >> 8).toShort
+  // bits 12-15 depending on address mode
+  lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
