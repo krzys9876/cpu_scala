@@ -168,8 +168,8 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("and'ed")
       Then("result is bitwise And")
       forAll(anyValueGen,anyValueGen):
-        (a, b) => whenever(a!=0 && b!=0)
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == ((a & b).toShort, 0xFFFE.toShort))
+        (a, b) =>
+          assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == ((a & b).toShort, (0xFFFE | (if ((a & b)==0) 1 else 0)).toShort))
 
     Scenario("bitwise And with 0"):
       Given("any number")
@@ -183,7 +183,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("or'ed")
       Then("result is bitwise Or")
       forAll(anyValueGen, anyValueGen):
-        (a, b) => whenever(a!=0 || b!=0)
+        (a, b) => whenever(a!=0 || b!=0):
           assert(Alu(a, b, 0xFFFF.toShort, AluOp.Or) == ((a | b).toShort, 0xFFFE.toShort))
 
     Scenario("bitwise Or of two 0s"):
@@ -197,7 +197,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("xor'ed")
       Then("result is bitwise Xor")
       forAll(anyValueGen, anyValueGen):
-        (a, b) => whenever(a != b)
+        (a, b) => whenever(a != b):
           assert(Alu(a, b, 0xFFFF.toShort, AluOp.Xor) == ((a ^ b).toShort, 0xFFFE.toShort))
 
     Scenario("bitwise Xor or same numbers"):
@@ -212,7 +212,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("compared")
       Then("zero flag is not set")
       forAll(anyValueGen, anyValueGen):
-        (a, b) => whenever(a != b)
+        (a, b) => whenever(a != b):
             assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare) == (0, 0xFFFE.toShort))
 
     Scenario("compare same numbers"):
@@ -224,12 +224,19 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
 
   Feature("decode opcode"):
     Scenario("decode all opcodes"):
-      Given("a list of all opcodes (0..F)")
+      Given("a list of all opcodes (0..F) including illegal")
       val opcodeNum=(0 to 0xF).toVector
       When("decoded")
       Then("resulting opcode has the same number")
-      opcodeNum.foreach(num => assert(Opcode.opcodes(num).code == num))
+      opcodeNum.foreach(num => assert(Opcode.codes(num).code == num))
 
+  Feature("decode address mode"):
+    Scenario("decode all address modes"):
+      Given("a list of all address modes (0..F) including illegal")
+      val modeNum = (0 to 0xF).toVector
+      When("decoded")
+      Then("resulting address mode has the same number")
+      modeNum.foreach(num => assert(AddressMode.codes(num).code == num))
 
   private def createRandomStateCpu:Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)((cpu, _) =>
