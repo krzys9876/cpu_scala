@@ -95,4 +95,4 @@ object Alu:
     println(f"a $a b $b r $result f $newF $newF%04X")
     (result.toShort, newF.toShort)
 
-private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
+  private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
