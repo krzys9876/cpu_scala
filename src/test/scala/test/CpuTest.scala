@@ -168,7 +168,8 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     When("and'ed")
     Then("result is bitwise And")
     forAll(anyValueGen,anyValueGen):
-      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == (a & b, (0xFFFE | (if((a & b) ==0) 1 else 0)).toShort))
+      (a, b) => whenever(a!=0 && b!=0)
+        assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == ((a & b).toShort, 0xFFFE.toShort))
 
   Scenario("bitwise And with 0"):
     Given("any number")
@@ -182,21 +183,22 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     When("or'ed")
     Then("result is bitwise Or")
     forAll(anyValueGen, anyValueGen):
-      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.Or) == (a | b, (0xFFFE | (if ((a | b) == 0) 1 else 0)).toShort))
+      (a, b) => whenever(a!=0 || b!=0)
+        assert(Alu(a, b, 0xFFFF.toShort, AluOp.Or) == ((a | b).toShort, 0xFFFE.toShort))
 
   Scenario("bitwise Or of two 0s"):
     Given("zero as both operands")
     When("or'ed")
     Then("result is 0 and zero flag is set")
-    forAll(anyValueGen):
-      _ => assert(Alu(0, 0, 0xFFFF.toShort, AluOp.Or) == (0, 0xFFFF.toShort))
+    assert(Alu(0, 0, 0xFFFF.toShort, AluOp.Or) == (0, 0xFFFF.toShort))
 
   Scenario("bitwise Xor"):
     Given("two different numbers")
     When("xor'ed")
     Then("result is bitwise Xor")
     forAll(anyValueGen, anyValueGen):
-      (a, b) => assert(Alu(a, b, 0xFFFF.toShort, AluOp.Xor) == (a ^ b, (0xFFFE | (if ((a ^ b) == 0) 1 else 0)).toShort))
+      (a, b) => whenever(a != b)
+        assert(Alu(a, b, 0xFFFF.toShort, AluOp.Xor) == ((a ^ b).toShort, 0xFFFE.toShort))
 
   Scenario("bitwise Xor or same numbers"):
     Given("any same numbers")
@@ -205,26 +207,41 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     forAll(anyValueGen):
       a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Xor) == (0, 0xFFFF.toShort))
 
+  Scenario("compare different numbers"):
+    Given("two different numbers")
+    When("compared")
+    Then("zero flag is not set")
+    forAll(anyValueGen, anyValueGen):
+      (a, b) => whenever(a != b)
+          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare) == (0, 0xFFFE.toShort))
+
+  Scenario("compare same numbers"):
+    Given("two same numbers")
+    When("compared")
+    Then("zero flag is set")
+    forAll(anyValueGen):
+      a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Compare) == (1, 0xFFFF.toShort))
+
   private def createRandomStateCpu:Cpu =
-    val cpu = (1 to 1000).foldLeft(testCpuHandler.create)({ case (cpu, _) =>
+    val cpu = (1 to 1000).foldLeft(testCpuHandler.create)((cpu, _) =>
       (for
         index <- registerIndexGen.sample
         value <- valueGen.sample
       yield cpu.setReg(index, value))
         .getOrElse(cpu)
-    })
+    )
     // Make sure that generators actually worked (it is practically impossible not to set 3+ register in 1000 takes)
     assert((0 to 15).count(cpu.register(_)!=0) > 3)
     cpu
 
   private def generateMemoryContents:Map[Int,Short] =
-    val pairs = (1 to 1000).foldLeft(Map[Int,Short]())({ case(map, _) =>
+    val pairs = (1 to 1000).foldLeft(Map[Int,Short]())((map, _) =>
       (for
         address <- addressGen.sample
         value <- valueGen.sample
       yield map + (address -> value))
         .getOrElse(map)
-    })
+    )
     // Make sure that generators actually worked (it is practically impossible not to set 10+ addresses in 1000 takes)
     assert(pairs.keys.size>10)
     pairs

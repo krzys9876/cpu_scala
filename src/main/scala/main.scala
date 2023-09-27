@@ -57,7 +57,7 @@ case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toSh
   override def write(address: Int, value: Short): Memory = copy(m = m.updated(address, value))
 
 enum AluOp:
-  case Add, Sub, And, Or, Xor
+  case Add, Sub, And, Or, Xor, Compare
 
 object Alu:
   def apply(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
@@ -65,6 +65,7 @@ object Alu:
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)
       case AluOp.And | AluOp.Or | AluOp.Xor => bitwise(a,b,f,op)
+      case AluOp.Compare => compare(a,b,f)
 
   private def add(a: Short, b: Short, f: Short):(Short,Short) =
     val result = (a + b).toShort
@@ -85,6 +86,13 @@ object Alu:
     val zero = result == 0
     val newF = f & 0xFFFE | bool2bit(zero)
     println(f"a $a b $b r $result f $newF $newF%04X op: $op")
+    (result.toShort, newF.toShort)
+
+  private def compare(a: Short, b: Short, f: Short): (Short, Short) =
+    val result = if(a==b) 1 else 0
+    val zero = result == 1
+    val newF = f & 0xFFFE | bool2bit(zero)
+    println(f"a $a b $b r $result f $newF $newF%04X")
     (result.toShort, newF.toShort)
 
 private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
