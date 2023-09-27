@@ -222,6 +222,13 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       forAll(anyValueGen):
         a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Compare) == (1, 0xFFFF.toShort))
 
+  Feature("decode opcode"):
+    Scenario("decode all opcodes"):
+      Given("a list of all opcodes (0..F)")
+      val opcodeNum=(0 to 0xF).toVector
+      When("decoded")
+      Then("resulting opcode has the same number")
+      opcodeNum.foreach(num => assert(Opcode.opcodes(num).code == num))
 
 
   private def createRandomStateCpu:Cpu =
