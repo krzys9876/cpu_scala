@@ -5,7 +5,7 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class OperationTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
+class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
   Feature("NOP"):
     Scenario("NOP as LD w/o operands"):
       assert(1==1)

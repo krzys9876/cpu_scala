@@ -30,6 +30,7 @@ sealed trait AddressMode:
   def code: Int
   def isLegal: Boolean = true
 
+case object NOP_MODE extends AddressMode {override val code:Int=0 }
 case object IMMEDIATE_LOW extends AddressMode {override val code:Int=0x8 }
 case object IMMEDIATE_HIGH extends AddressMode {override val code:Int=0x9 }
 case object REGISTERS extends AddressMode {override val code:Int=0x3 }
@@ -42,7 +43,7 @@ case class AddressModeIllegal(override val code:Int) extends AddressMode:
   override val isLegal: Boolean = false
 
 object AddressMode:
-  val codes:Vector[AddressMode]=Vector(AddressModeIllegal(0),AddressModeIllegal(1),AddressModeIllegal(2),REGISTERS,
+  val codes:Vector[AddressMode]=Vector(NOP_MODE,AddressModeIllegal(1),AddressModeIllegal(2),REGISTERS,
     REG2MEMORY,MEMORY2REG,OUTPUT_REG,INPUT_REG,IMMEDIATE_LOW,IMMEDIATE_HIGH,AddressModeIllegal(0xA),
     AddressModeIllegal(0xB),AddressModeIllegal(0xC),AddressModeIllegal(0xD),AddressModeIllegal(0xE),AddressModeIllegal(0xF))
 

@@ -18,12 +18,14 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def incSP: Cpu = setSp((sp + 1).toShort)
   def decSP: Cpu = setSp((sp - 1).toShort)
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
+  def handle(instr:Instruction): Cpu = handler.handle(this,instr)
 
 trait CpuHandler:
   def create: Cpu
   def reset(cpu: Cpu): Cpu
   def setReg(cpu: Cpu, index: Int, value: Short): Cpu
   def writeMemory(cpu:Cpu, address: Int, value: Short): Cpu
+  def handle(cpu:Cpu, instr:Instruction): Cpu
 
 object CpuHandlerImmutable extends CpuHandler:
   override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory)
@@ -31,6 +33,11 @@ object CpuHandlerImmutable extends CpuHandler:
   override def setReg(cpu: Cpu, index: Int, value: Short): Cpu = cpu.copy(register = cpu.register.set(index, value))
   override def writeMemory(cpu: Cpu, address: Int, value: Short): Cpu = cpu.copy(memory = cpu.memory.write(address,value))
 
+  //TODO: handle exceptions when opcode is invalid
+  override def handle(cpu: Cpu, instr:Instruction): Cpu =
+    (instr.opcode,instr.mode) match
+      case (LD,NOP_MODE) => cpu //handleLD(cpu, instr)
+      case _ => cpu
 
   private def emptyRegs: Register = RegisterImmutable.empty
   private def emptyMemory: Memory = MemoryImmutable()
