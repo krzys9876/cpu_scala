@@ -18,7 +18,7 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def incSP: Cpu = setSp((sp + 1).toShort)
   def decSP: Cpu = setSp((sp - 1).toShort)
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
-  def handle(instr:Instruction): Cpu = handler.handle(this,instr)
+  def handle(instr:Instruction): Cpu = handler.handle(this,instr) //TODO: should it be handleNext and read instruction from memory at PC?
 
 trait CpuHandler:
   def create: Cpu
