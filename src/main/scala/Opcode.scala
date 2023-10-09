@@ -58,3 +58,5 @@ case class Instruction(value:Short):
   lazy val reg1: Short = ((value & 0x0F00) >> 8).toShort
   // bits 12-15 depending on address mode
   lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
+
+object INSTR_NOP extends Instruction(0.toShort)

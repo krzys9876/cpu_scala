@@ -18,7 +18,7 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def incSP: Cpu = setSp((sp + 1).toShort)
   def decSP: Cpu = setSp((sp - 1).toShort)
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
-  def handle(instr:Instruction): Cpu = handler.handle(this,instr) //TODO: should it be handleNext and read instruction from memory at PC?
+  def handleNext:Cpu = handler.handle(this, Instruction(memory(pc)))
 
 trait CpuHandler:
   def create: Cpu
@@ -36,7 +36,7 @@ object CpuHandlerImmutable extends CpuHandler:
   //TODO: handle exceptions when opcode is invalid
   override def handle(cpu: Cpu, instr:Instruction): Cpu =
     (instr.opcode,instr.mode) match
-      case (LD,NOP_MODE) => cpu //handleLD(cpu, instr)
+      case (LD,NOP_MODE) => cpu.incPC //handleLD(cpu, instr)
       case _ => cpu
 
   private def emptyRegs: Register = RegisterImmutable.empty
@@ -61,7 +61,9 @@ trait Memory:
 
 case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toShort)) extends Memory:
   override def apply(address: Int): Short = m(address & 0xFFFF)
-  override def write(address: Int, value: Short): Memory = copy(m = m.updated(address, value))
+  override def write(address: Int, value: Short): Memory =
+    val actualAddress = if(address<0) address+0x10000 else address
+    copy(m = m.updated(actualAddress, value))
 
 enum AluOp:
   case Add, Sub, And, Or, Xor, Compare
@@ -80,7 +82,7 @@ object Alu:
     val borrow = (a < 0 && b < 0) && result > 0
     val zero = result == 0
     val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
-    println(f"a $a b $b r $result f $newF $newF%04X")
+    //println(f"a $a b $b r $result f $newF $newF%04X")
     (result, newF.toShort)
 
   private def bitwise(a: Short, b: Short, f: Short, op:AluOp):(Short,Short) =
@@ -92,14 +94,14 @@ object Alu:
 
     val zero = result == 0
     val newF = f & 0xFFFE | bool2bit(zero)
-    println(f"a $a b $b r $result f $newF $newF%04X op: $op")
+    //println(f"a $a b $b r $result f $newF $newF%04X op: $op")
     (result.toShort, newF.toShort)
 
   private def compare(a: Short, b: Short, f: Short): (Short, Short) =
     val result = if(a==b) 1 else 0
     val zero = result == 1
     val newF = f & 0xFFFE | bool2bit(zero)
-    println(f"a $a b $b r $result f $newF $newF%04X")
+    //println(f"a $a b $b r $result f $newF $newF%04X")
     (result.toShort, newF.toShort)
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
