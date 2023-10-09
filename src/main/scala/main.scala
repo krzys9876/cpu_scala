@@ -49,11 +49,8 @@ object CpuHandlerImmutable extends CpuHandler:
         val handled=cpu.setReg(instr.reg2,cpu.memory(cpu.register(instr.reg1)))
         //NOTE: do not increase PC if r2 is PC (0)
         if (instr.reg2 != 0) handled.incPC else handled
-      case (LD, REG2MEMORY) =>
-        val handled = cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1))
-        //NOTE: do not increase PC if r2 is PC (0)
-        if (instr.reg2 != 0) handled.incPC else handled
-      case _ => cpu
+      case (LD, REG2MEMORY) => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
+      case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def emptyRegs: Register = RegisterImmutable.empty
   private def emptyMemory: Memory = MemoryImmutable()

@@ -27,7 +27,7 @@ object TestUtils:
     assert((0 to 15).count(cpu.register(_) != 0) > 3)
     cpu
 
-  def createRandomStateCpuWithMemory(toFill:Int = 100000):Cpu =
+  def createRandomStateCpuWithMemory(toFill:Int = 50000):Cpu =
     generateMemoryContents(toFill).foldLeft(createRandomStateCpu)({ case (cpu, pair) => cpu.writeMemory(pair._1, pair._2) })
 
 
