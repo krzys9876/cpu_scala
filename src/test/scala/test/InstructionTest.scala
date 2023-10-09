@@ -1,7 +1,6 @@
 package org.kr.cpu
 package test
 
-import org.scalacheck.Gen
 import org.scalactic.anyvals.PosZInt
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
@@ -65,7 +64,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           When("executed")
           val cpuAfter = cpuBefore.handleNext
           Then("register 2 is loaded with value from register 1")
-          println(f"R1($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+          //println(f"R1($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
           assert(cpuAfter.register(r2) == cpuAfter.register(r1))
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
@@ -75,30 +74,28 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
       And("r1 is PC and r2 is not PC")
       val cpuStart = TestUtils.createRandomStateCpu
       forAll(TestUtils.addressGen, TestUtils.registerIndexGen):
-        (pc, r2) =>
-          whenever(r2 != 0):
-            val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, INSTR_LD_RR(0, r2).value)
-            When("executed")
-            val cpuAfter = cpuBefore.handleNext
-            Then("register 2 is loaded with value from PC (before increase)")
-            println(f"R1(0): ${cpuAfter.pc} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
-            assert(cpuAfter.register(r2) == pc.toShort)
-            And("PC is increased by 1")
-            assert(cpuAfter.pc == (pc + 1).toShort)
+        (pc, r2) => whenever(r2 != 0):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, INSTR_LD_RR(0, r2).value)
+          When("executed")
+          val cpuAfter = cpuBefore.handleNext
+          Then("register 2 is loaded with value from PC (before increase)")
+          //println(f"R1(0): ${cpuAfter.pc} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+          assert(cpuAfter.register(r2) == pc.toShort)
+          And("PC is increased by 1")
+          assert(cpuAfter.pc == (pc + 1).toShort)
 
     Scenario("copy to PC (jump)"):
       Given("a CPU in random state with LD r1,r2 as next instruction")
       And("r2 is PC and r1 is not PC")
       val cpuStart = TestUtils.createRandomStateCpu
       forAll(TestUtils.addressGen, TestUtils.registerIndexGen):
-        (pc, r1) =>
-          whenever(r1 != 0):
-            val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, INSTR_LD_RR(r1, 0).value)
-            When("executed")
-            val cpuAfter = cpuBefore.handleNext
-            Then("PC is loaded with value from register 1")
-            println(f"pc: $pc R1($r1): ${cpuAfter.register(r1)} R2(0) after: ${cpuAfter.pc} R2 before: ${cpuBefore.pc}")
-            assert(cpuAfter.pc == cpuAfter.register(r1))
+        (pc, r1) => whenever(r1 != 0):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, INSTR_LD_RR(r1, 0).value)
+          When("executed")
+          val cpuAfter = cpuBefore.handleNext
+          Then("PC is loaded with value from register 1")
+          //println(f"pc: $pc R1($r1): ${cpuAfter.register(r1)} R2(0) after: ${cpuAfter.pc} R2 before: ${cpuBefore.pc}")
+          assert(cpuAfter.pc == cpuAfter.register(r1))
 
     Scenario("read memory"):
       assert(1 == 1)
