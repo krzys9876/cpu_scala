@@ -63,3 +63,5 @@ case object INSTR_NOP extends Instruction((LD.code | (NOP_MODE.code << 4)).toSho
 case class INSTR_LD_AL(imm:Short) extends Instruction((LD.code | (IMMEDIATE_LOW.code << 4) | ((imm & 0xFF) << 8)).toShort)
 case class INSTR_LD_AH(imm:Short) extends Instruction((LD.code | (IMMEDIATE_HIGH.code << 4) | ((imm & 0xFF) << 8)).toShort)
 case class INSTR_LD_RR(r1:Short,r2:Short) extends Instruction((LD.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
+case class INSTR_LD_MR(r1:Short,r2:Short) extends Instruction((LD.code | (MEMORY2REG.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
+case class INSTR_LD_RM(r1:Short,r2:Short) extends Instruction((LD.code | (REG2MEMORY.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)

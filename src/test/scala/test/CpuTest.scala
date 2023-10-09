@@ -92,8 +92,8 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     Scenario("read from / write to memory"):
       Given("a cpu instance in random state")
       And("memory instance initialized with some values at some addresses")
-      val cpuInit = TestUtils.createRandomStateCpu
-      val memoryPairs = TestUtils.generateMemoryContents
+      val cpuInit =  TestUtils.createRandomStateCpu
+      val memoryPairs = TestUtils.generateMemoryContents()
       val cpuMem = memoryPairs.foldLeft(cpuInit)({case (cpu,pair) => cpu.writeMemory(pair._1,pair._2) })
       When("the same address is read from memory")
       Then("value is the same as previously initialized")

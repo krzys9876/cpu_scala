@@ -27,8 +27,12 @@ object TestUtils:
     assert((0 to 15).count(cpu.register(_) != 0) > 3)
     cpu
 
-  def generateMemoryContents: Map[Int, Short] =
-    val pairs = (1 to 1000).foldLeft(Map[Int, Short]())((map, _) =>
+  def createRandomStateCpuWithMemory(toFill:Int = 100000):Cpu =
+    generateMemoryContents(toFill).foldLeft(createRandomStateCpu)({ case (cpu, pair) => cpu.writeMemory(pair._1, pair._2) })
+
+
+  def generateMemoryContents(toFill:Int = 1000): Map[Int, Short] =
+    val pairs = (1 to toFill).foldLeft(Map[Int, Short]())((map, _) =>
       (for
         address <- addressGen.sample
         value <- anyValueGen.sample
