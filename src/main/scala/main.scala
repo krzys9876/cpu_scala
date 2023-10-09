@@ -41,6 +41,10 @@ object CpuHandlerImmutable extends CpuHandler:
       case (LD,NOP_MODE) => cpu.incPC
       case (LD,IMMEDIATE_LOW) => cpu.setAL(instr.immediate).incPC
       case (LD,IMMEDIATE_HIGH) => cpu.setAH(instr.immediate).incPC
+      case (LD,REGISTERS) =>
+        val handled=cpu.setReg(instr.reg2,cpu.register(instr.reg1))
+        //NOTE: do not increase PC if r2 is PC (0)
+        if(instr.reg2!=0) handled.incPC else handled
       case _ => cpu
 
   private def emptyRegs: Register = RegisterImmutable.empty
