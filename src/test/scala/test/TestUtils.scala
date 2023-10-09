@@ -10,18 +10,16 @@ object TestUtils:
   val largePositiveValueGen: Gen[Short] = Gen.choose(0x4000.toShort, 0x7FFF.toShort)
   val anyValueGen: Gen[Short] = Gen.choose(Short.MinValue, Short.MaxValue)
   val byteValueGen: Gen[Short] = Gen.choose(0.toShort, 0xFF.toShort)
+  val registerIndexGen: Gen[Short] = Gen.choose(0.toShort, 15.toShort)
+  val addressGen: Gen[Int] = Gen.choose(0, 0xFFFF)
 
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
 
-  val registerIndexGen:Gen[Short] = Gen.choose(0.toShort,15.toShort)
-  val addressGen:Gen[Int] = Gen.choose(0,0xFFFF)
-  val valueGen:Gen[Short] = Gen.choose((-0x8000).toShort,0x7FFF.toShort)
-  
   def createRandomStateCpu: Cpu =
     val cpu = (1 to 1000).foldLeft(testCpuHandler.create)((cpu, _) =>
       (for
         index <- registerIndexGen.sample
-        value <- valueGen.sample
+        value <- anyValueGen.sample
       yield cpu.setReg(index, value))
         .getOrElse(cpu)
     )
@@ -33,7 +31,7 @@ object TestUtils:
     val pairs = (1 to 1000).foldLeft(Map[Int, Short]())((map, _) =>
       (for
         address <- addressGen.sample
-        value <- valueGen.sample
+        value <- anyValueGen.sample
       yield map + (address -> value))
         .getOrElse(map)
     )

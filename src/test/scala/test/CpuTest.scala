@@ -28,7 +28,7 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       val cpuInit = TestUtils.createRandomStateCpu
       When("a register is set to a given value")
       Then("the same value can be read from register")
-      forAll(TestUtils.registerIndexGen,TestUtils.valueGen):
+      forAll(TestUtils.registerIndexGen,TestUtils.anyValueGen):
         (index, value) =>
           val cpuSet = cpuInit.setReg(index,value)
           assert(cpuSet.register(index)==value)
