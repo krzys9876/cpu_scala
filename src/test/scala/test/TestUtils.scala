@@ -9,6 +9,7 @@ object TestUtils:
   val smallPositiveValueGen: Gen[Short] = Gen.choose(1.toShort, 0x3FFF.toShort)
   val largePositiveValueGen: Gen[Short] = Gen.choose(0x4000.toShort, 0x7FFF.toShort)
   val anyValueGen: Gen[Short] = Gen.choose(Short.MinValue, Short.MaxValue)
+  val byteValueGen: Gen[Short] = Gen.choose(0.toShort, 0xFF.toShort)
 
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
 

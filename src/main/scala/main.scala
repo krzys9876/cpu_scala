@@ -13,6 +13,8 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def a: Short = register(3)
   def setPc(value:Short): Cpu = setReg(0,value)
   def setSp(value:Short): Cpu = setReg(1,value)
+  def setAL(value:Short): Cpu = setReg(3,((a & 0xFF00) | (value & 0x00FF)).toShort)
+  def setAH(value:Short): Cpu = setReg(3,((a & 0x00FF) | ((value & 0x00FF) << 8)).toShort)
   def setReg(index:Int, value:Short): Cpu = handler.setReg(this, index,value)
   def incPC: Cpu = setPc((pc + 1).toShort)
   def incSP: Cpu = setSp((sp + 1).toShort)
@@ -36,7 +38,9 @@ object CpuHandlerImmutable extends CpuHandler:
   //TODO: handle exceptions when opcode is invalid
   override def handle(cpu: Cpu, instr:Instruction): Cpu =
     (instr.opcode,instr.mode) match
-      case (LD,NOP_MODE) => cpu.incPC //handleLD(cpu, instr)
+      case (LD,NOP_MODE) => cpu.incPC
+      case (LD,IMMEDIATE_LOW) => cpu.setAL(instr.immediate).incPC
+      case (LD,IMMEDIATE_HIGH) => cpu.setAH(instr.immediate).incPC
       case _ => cpu
 
   private def emptyRegs: Register = RegisterImmutable.empty

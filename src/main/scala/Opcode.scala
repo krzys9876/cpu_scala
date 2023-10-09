@@ -47,7 +47,7 @@ object AddressMode:
     REG2MEMORY,MEMORY2REG,OUTPUT_REG,INPUT_REG,IMMEDIATE_LOW,IMMEDIATE_HIGH,AddressModeIllegal(0xA),
     AddressModeIllegal(0xB),AddressModeIllegal(0xC),AddressModeIllegal(0xD),AddressModeIllegal(0xE),AddressModeIllegal(0xF))
 
-case class Instruction(value:Short):
+class Instruction(val value:Short):
   // bits 0-3
   val opcode:Opcode = Opcode.codes((value & 0x000F).toShort)
   // bits 4-7
@@ -59,4 +59,6 @@ case class Instruction(value:Short):
   // bits 12-15 depending on address mode
   lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
 
-object INSTR_NOP extends Instruction(0.toShort)
+case object INSTR_NOP extends Instruction((LD.code | (NOP_MODE.code << 4)).toShort)
+case class INSTR_LD_AL(imm:Short) extends Instruction((LD.code | (IMMEDIATE_LOW.code << 4) | ((imm & 0xFF) << 8)).toShort)
+case class INSTR_LD_AH(imm:Short) extends Instruction((LD.code | (IMMEDIATE_HIGH.code << 4) | ((imm & 0xFF) << 8)).toShort)
