@@ -9,12 +9,15 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   // predefined registers
   def pc: Short = register(0)
   def sp: Short = register(1)
-  def fl: Short = register(2)
+  private def fl: Short = register(2)
+  def flZ: Boolean = (fl & 0x0001) == 1
   def a: Short = register(3)
   def setPc(value:Short): Cpu = setReg(0,value)
   def setSp(value:Short): Cpu = setReg(1,value)
   def setAL(value:Short): Cpu = setReg(3,((a & 0xFF00) | (value & 0x00FF)).toShort)
   def setAH(value:Short): Cpu = setReg(3,((a & 0x00FF) | ((value & 0x00FF) << 8)).toShort)
+  def setZ(): Cpu = setReg(2, (fl | 0x0001).toShort)
+  def clearZ(): Cpu = setReg(2, (fl & 0xFFFE).toShort)
   def setReg(index:Int, value:Short): Cpu = handler.setReg(this, index,value)
   def incPC: Cpu = setPc((pc + 1).toShort)
   def incSP: Cpu = setSp((sp + 1).toShort)
@@ -35,21 +38,29 @@ object CpuHandlerImmutable extends CpuHandler:
   override def setReg(cpu: Cpu, index: Int, value: Short): Cpu = cpu.copy(register = cpu.register.set(index, value))
   override def writeMemory(cpu: Cpu, address: Int, value: Short): Cpu = cpu.copy(memory = cpu.memory.write(address,value))
 
-  //TODO: handle exceptions when opcode is invalid
   override def handle(cpu: Cpu, instr:Instruction): Cpu =
-    (instr.opcode,instr.mode) match
-      case (LD,NOP_MODE) => cpu.incPC
-      case (LD,IMMEDIATE_LOW) => cpu.setAL(instr.immediate).incPC
-      case (LD,IMMEDIATE_HIGH) => cpu.setAH(instr.immediate).incPC
-      case (LD,REGISTERS) =>
-        val handled=cpu.setReg(instr.reg2,cpu.register(instr.reg1))
-        //NOTE: do not increase PC if r2 is PC (0)
-        if(instr.reg2!=0) handled.incPC else handled
-      case (LD,MEMORY2REG) =>
-        val handled=cpu.setReg(instr.reg2,cpu.memory(cpu.register(instr.reg1)))
+    (instr.opcode, cpu.flZ) match
+      case (LD,_) => handleLD(cpu, instr)
+      case (LDZ, true) | (LDNZ, false) => this.handleLD(cpu,instr) // handle actual LD instruction
+      case (LDZ, false) | (LDNZ, true) => handleNOP(cpu) // do nothing (NOP)
+      case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
+
+  private def handleNOP(cpu: Cpu):Cpu = cpu.incPC
+
+  private def handleLD(cpu: Cpu, instr:Instruction): Cpu =
+    instr.mode match
+      case NOP_MODE => handleNOP(cpu)
+      case IMMEDIATE_LOW => cpu.setAL(instr.immediate).incPC
+      case IMMEDIATE_HIGH => cpu.setAH(instr.immediate).incPC
+      case REGISTERS =>
+        val handled = cpu.setReg(instr.reg2, cpu.register(instr.reg1))
         //NOTE: do not increase PC if r2 is PC (0)
         if (instr.reg2 != 0) handled.incPC else handled
-      case (LD, REG2MEMORY) => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
+      case MEMORY2REG =>
+        val handled = cpu.setReg(instr.reg2, cpu.memory(cpu.register(instr.reg1)))
+        //NOTE: do not increase PC if r2 is PC (0)
+        if (instr.reg2 != 0) handled.incPC else handled
+      case REG2MEMORY => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def emptyRegs: Register = RegisterImmutable.empty

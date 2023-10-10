@@ -71,7 +71,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
 
     Scenario("copy from PC to a register"):
       Given("a CPU in random state with LD r1,r2 as next instruction")
-      And("r1 is PC and r2 is not PC")
+      And("r2 is PC")
       val cpuStart = TestUtils.createRandomStateCpu
       forAll(TestUtils.addressGen, TestUtils.registerIndexGen):
         (pc, r2) => whenever(r2 != 0):
@@ -84,7 +84,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
 
-    Scenario("copy from register to PC (jump)"):
+    Scenario("copy from register to PC (jump unconditional)"):
       Given("a CPU in random state with LD r1,r2 as next instruction")
       And("r2 is PC and r1 is not PC")
       val cpuStart = TestUtils.createRandomStateCpu
@@ -131,7 +131,6 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
 
     Scenario("write memory"):
       Given("a CPU in random state with LD r1,(r2) as next instruction")
-      And("r1 and r2 are not PC")
       val cpuStart = TestUtils.createRandomStateCpuWithMemory()
       forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
         (pc, r1, r2) =>
@@ -146,3 +145,37 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
             assert(cpuAfter.memory(r2Before) == r1Before)
             And("PC is increased by 1")
             assert(cpuAfter.pc == (pc + 1).toShort)
+
+  Feature("LDZ/LDNZ"):
+    Scenario("copy registers when Z flag is set"):
+      Given("a CPU in random state with LDZ r1,r2 as next instruction and Z flag is set")
+      And("r1 and r2 are not PC and FL")
+      val cpuStart = TestUtils.createRandomStateCpu
+      forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
+        (pc, r1, r2) =>
+          whenever(r1 != 0 && r2 != 0 && r1 != 2 && r2 != 2):
+            val cpuBefore = cpuStart.setPc(pc.toShort).setZ().writeMemory(pc, INSTR_LDZ_RR(r1, r2).value)
+            When("executed")
+            val cpuAfter = cpuBefore.handleNext
+            Then("register 2 is loaded with value from register 1")
+            //println(f"R1($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+            assert(cpuAfter.register(r2) == cpuAfter.register(r1))
+            And("PC is increased by 1")
+            assert(cpuAfter.pc == (pc + 1).toShort)
+
+    Scenario("copy registers when Z flag is unset"):
+      Given("a CPU in random state with LDNZ r1,r2 as next instruction and Z flag is unset")
+      And("r1 and r2 are not PC and FL")
+      val cpuStart = TestUtils.createRandomStateCpu
+      forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
+        (pc, r1, r2) =>
+          whenever(r1 != 0 && r2 != 0 && r1 != 2 && r2 != 2):
+            val cpuBefore = cpuStart.setPc(pc.toShort).clearZ().writeMemory(pc, INSTR_LDNZ_RR(r1, r2).value)
+            When("executed")
+            val cpuAfter = cpuBefore.handleNext
+            Then("register 2 is loaded with value from register 1")
+            println(f"R1($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+            assert(cpuAfter.register(r2) == cpuAfter.register(r1))
+            And("PC is increased by 1")
+            assert(cpuAfter.pc == (pc + 1).toShort)
+
