@@ -6,12 +6,10 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-
 class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
-
-
+  
   Feature("CPU reset sequence"):
     Scenario("reset CPU"):
       Given("A cpu instance in random state")
@@ -199,8 +197,8 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("compared")
       Then("zero flag is not set")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
-        (a, b) => whenever(a != b):
-            assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare) == (0, 0xFFFE.toShort))
+        (a, b) => whenever(a != b): 
+          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare) == (0, 0xFFFE.toShort))
 
     Scenario("compare same numbers"):
       Given("two same numbers")
@@ -224,4 +222,3 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("decoded")
       Then("resulting address mode has the same number")
       modeNum.foreach(num => assert(AddressMode.codes(num).code == num))
-
