@@ -6,12 +6,9 @@ sealed trait Opcode:
 
 case object LD extends Opcode {override val code:Int=0x0 }
 case object RET extends Opcode {override val code:Int=0x3 } //TODO: this might be too complex to implement in a single cycle
-case object JR extends Opcode {override val code:Int=0x4 } //TODO: this should probably have conditional version: JRZ, JRNZ
 case object CALL extends Opcode {override val code:Int=0x5 } //TODO: this might be too complex to implement in a single cycle
 case object LDZ extends Opcode {override val code:Int=0x6 }
 case object LDNZ extends Opcode {override val code:Int=0x7 }
-// NOTE:
-
 
 case object ADD extends Opcode {override val code:Int=0x8 }
 case object SUB extends Opcode {override val code:Int=0xA }
@@ -24,7 +21,7 @@ case class OpcodeIllegal(override val code:Int) extends Opcode:
   override val isLegal: Boolean = false
 
 object Opcode:
-  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),RET,JR,CALL,LDZ,LDNZ,ADD,OpcodeIllegal(9),SUB,CMP,AND,OR,XOR,OpcodeIllegal(0xF))
+  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),RET,OpcodeIllegal(4),CALL,LDZ,LDNZ,ADD,OpcodeIllegal(9),SUB,CMP,AND,OR,XOR,OpcodeIllegal(0xF))
 
 sealed trait AddressMode:
   def code: Int
