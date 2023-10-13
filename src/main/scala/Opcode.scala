@@ -62,7 +62,7 @@ class Instruction(val value:Short):
   def valueWithOpcode(newOpcode:Opcode): Short = (value & 0xFFF0 | newOpcode.code).toShort
   def replaceOpcode(newOpcode:Opcode): Instruction = Instruction(valueWithOpcode(newOpcode))
 
-case object INSTR_NOP extends Instruction((LD.code | (NOP_MODE.code << 4)).toShort)
+case class INSTR_NOP() extends Instruction((LD.code | (NOP_MODE.code << 4)).toShort)
 case class INSTR_LD_AL(imm:Short) extends Instruction((LD.code | (IMMEDIATE_LOW.code << 4) | ((imm & 0xFF) << 8)).toShort)
 case class INSTR_LD_AH(imm:Short) extends Instruction((LD.code | (IMMEDIATE_HIGH.code << 4) | ((imm & 0xFF) << 8)).toShort)
 case class INSTR_LD_RR(r1:Short,r2:Short) extends Instruction((LD.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
