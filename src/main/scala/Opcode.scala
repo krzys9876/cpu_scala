@@ -77,3 +77,12 @@ case class INSTR_LDNZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWi
 case class INSTR_LDNZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_MR(r1:Short,r2:Short) extends Instruction(INSTR_LD_MR(r1,r2).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RM(r1:Short,r2:Short) extends Instruction(INSTR_LD_RM(r1,r2).valueWithOpcode(LDNZ))
+
+class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort) 
+
+case class INSTR_ADD(r1:Short,r2:Short) extends INSTR_ALU(ADD,r1,r2)
+case class INSTR_SUB(r1:Short,r2:Short) extends INSTR_ALU(SUB,r1,r2)
+case class INSTR_CMP(r1:Short,r2:Short) extends INSTR_ALU(CMP,r1,r2)
+case class INSTR_AND(r1:Short,r2:Short) extends INSTR_ALU(AND,r1,r2)
+case class INSTR_OR(r1:Short,r2:Short) extends INSTR_ALU(OR,r1,r2)
+case class INSTR_XOR(r1:Short,r2:Short) extends INSTR_ALU(XOR,r1,r2)
