@@ -294,7 +294,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           When("executed")
           val cpuAfter = cpuBefore.handleNext
           Then("r1 is changed with according to ALU operation")
-          println(f"R1($r1) after: ${cpuAfter.register(r1)}  R1 before: ${cpuBefore.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+          //println(f"R1($r1) after: ${cpuAfter.register(r1)}  R1 before: ${cpuBefore.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
           val res= Alu(r1Before, r2Before, cpuBefore.fl, oper)
           assert(cpuAfter.register(r1) == res._1)
           assert(cpuAfter.fl == res._2)
