@@ -47,7 +47,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case (LD,_) => handleLD(cpu, instr)
       case (LDZ, true) | (LDNZ, false) => this.handleLD(cpu,instr) // handle actual LD instruction
       case (LDZ, false) | (LDNZ, true) => handleNOP(cpu) // do nothing (NOP)
-      case (ADD, _) | (SUB, _) | (AND, _) | (OR, _) | (XOR, _) => handleALU(cpu,instr)
+      case (ADD, _) | (SUB, _) | (AND, _) | (OR, _) | (XOR, _) | (CMP, _) => handleALU(cpu,instr)
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleNOP(cpu: Cpu):Cpu = cpu.incPC
@@ -75,6 +75,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case AND => AluOp.And
       case OR => AluOp.Or
       case XOR => AluOp.Xor
+      case CMP => AluOp.Compare
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")
 
     val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,oper)
@@ -143,6 +144,6 @@ object Alu:
     val zero = result == 1
     val newF = f & 0xFFFE | bool2bit(zero)
     //println(f"a $a b $b r $result f $newF $newF%04X")
-    (result.toShort, newF.toShort)
+    (a, newF.toShort)
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0

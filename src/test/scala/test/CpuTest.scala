@@ -198,14 +198,14 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("zero flag is not set")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
         (a, b) => whenever(a != b): 
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare) == (0, 0xFFFE.toShort))
+          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare)._2 == 0xFFFE.toShort)
 
     Scenario("compare same numbers"):
       Given("two same numbers")
       When("compared")
       Then("zero flag is set")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Compare) == (1, 0xFFFF.toShort))
+        a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Compare)._2 == 0xFFFF.toShort)
 
   Feature("decode opcode"):
     Scenario("decode all opcodes"):
