@@ -1,5 +1,7 @@
 package org.kr.cpu
 
+import AluOp.Add
+
 @main
 def main(args: String*): Unit =
   println("Main CPU function doing nothing")
@@ -9,15 +11,17 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   // predefined registers
   def pc: Short = register(0)
   def sp: Short = register(1)
-  private def fl: Short = register(2)
+  def fl: Short = register(2)
   def flZ: Boolean = (fl & 0x0001) == 1
   def a: Short = register(3)
   def setPc(value:Short): Cpu = setReg(0,value)
   def setSp(value:Short): Cpu = setReg(1,value)
+  def setFl(value:Short): Cpu = setReg(2,value)
   def setAL(value:Short): Cpu = setReg(3,((a & 0xFF00) | (value & 0x00FF)).toShort)
   def setAH(value:Short): Cpu = setReg(3,((a & 0x00FF) | ((value & 0x00FF) << 8)).toShort)
-  def setZ(): Cpu = setReg(2, (fl | 0x0001).toShort)
-  def clearZ(): Cpu = setReg(2, (fl & 0xFFFE).toShort)
+  def setZ(): Cpu = setFl((fl | 0x0001).toShort)
+  def clearZ(): Cpu = setFl((fl & 0xFFFE).toShort)
+
   def setReg(index:Int, value:Short): Cpu = handler.setReg(this, index,value)
   def incPC: Cpu = setPc((pc + 1).toShort)
   def incSP: Cpu = setSp((sp + 1).toShort)
@@ -43,6 +47,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case (LD,_) => handleLD(cpu, instr)
       case (LDZ, true) | (LDNZ, false) => this.handleLD(cpu,instr) // handle actual LD instruction
       case (LDZ, false) | (LDNZ, true) => handleNOP(cpu) // do nothing (NOP)
+      case (ADD, _) | (SUB, _) | (AND, _) | (OR, _) | (XOR, _) => handleALU(cpu,instr)
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleNOP(cpu: Cpu):Cpu = cpu.incPC
@@ -62,6 +67,18 @@ object CpuHandlerImmutable extends CpuHandler:
         if (instr.reg2 != 0) handled.incPC else handled
       case REG2MEMORY => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
+
+  private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
+    val oper = instr.opcode match
+      case ADD => AluOp.Add
+      case SUB => AluOp.Sub
+      case AND => AluOp.And
+      case OR => AluOp.Or
+      case XOR => AluOp.Xor
+      case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")
+
+    val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,oper)
+    cpu.setReg(instr.reg1, res._1).setFl(res._2).incPC
 
   private def emptyRegs: Register = RegisterImmutable.empty
   private def emptyMemory: Memory = MemoryImmutable()

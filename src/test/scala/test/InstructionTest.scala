@@ -144,6 +144,27 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
       doTestNOP(TestUtils.createRandomStateCpuWithMemory().clearZ(), INSTR_LDZ_RM(0xA,0xB))
       doTestNOP(TestUtils.createRandomStateCpuWithMemory().setZ(), INSTR_LDNZ_RM(0xA,0xB))
 
+  Feature("ALU"):
+    Scenario("handle ADD (r1+=r2"):
+      Given("a CPU in random state with ADD r1,r2 as next instruction and r1>2 (excl. pc, sp, fl)")
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_ADD.apply, AluOp.Add, _ > 2)
+
+    Scenario("handle SUB (r1-=r2"):
+      Given("a CPU in random state with SUB r1,r2 as next instruction and r1>2 (excl. pc, sp, fl)")
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_SUB.apply, AluOp.Sub, _ > 2)
+
+  Scenario("handle AND (r1&=r2"):
+    Given("a CPU in random state with AND r1,r2 as next instruction and r1>2 (excl. pc, sp, fl)")
+    doTestALU(TestUtils.createRandomStateCpu, INSTR_AND.apply, AluOp.And, _ > 2)
+
+  Scenario("handle OR (r1|=r2"):
+    Given("a CPU in random state with OR r1,r2 as next instruction and r1>2 (excl. pc, sp, fl)")
+    doTestALU(TestUtils.createRandomStateCpu, INSTR_OR.apply, AluOp.Or, _ > 2)
+
+  Scenario("handle XOR (r1^=r2"):
+    Given("a CPU in random state with XOR r1,r2 as next instruction and r1>2 (excl. pc, sp, fl)")
+    doTestALU(TestUtils.createRandomStateCpu, INSTR_XOR.apply, AluOp.Xor, _ > 2)
+
   private def doTestNOP(cpuStart: Cpu, instr: Instruction): Unit =
     forAll(TestUtils.addressGen):
       pc =>
@@ -258,3 +279,21 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           assert(cpuAfter.memory(r2Before) == r1Before)
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
+
+  private def doTestALU(cpuStart: Cpu, instr: (Short, Short) => Instruction, oper: AluOp, registerPredicate: Short => Boolean): Unit =
+    forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
+      (pc, r1, r2) =>
+        whenever(registerPredicate(r1)):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r1, r2).value)
+          val r1Before = cpuBefore.register(r1)
+          val r2Before = cpuBefore.register(r2)
+          When("executed")
+          val cpuAfter = cpuBefore.handleNext
+          Then("r1 is changed with according to ALU operation")
+          //println(f"R1($r1) after: ${cpuAfter.register(r1)}  R2 before: ${cpuBefore.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
+          val res= Alu(r1Before, r2Before, cpuBefore.fl, oper)
+          assert(cpuAfter.register(r1) == res._1)
+          assert(cpuAfter.fl == res._2)
+          And("PC is increased by 1")
+          assert(cpuAfter.pc == (pc + 1).toShort)
+
