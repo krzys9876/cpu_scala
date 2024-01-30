@@ -5,12 +5,6 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 
 class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
-  Feature("Sequential register operations"):
-    pending
-
-  Feature("Sequential memory operations"):
-    pending
-
   Feature("Call and return (work in progress"):
     Scenario("Call a subroutine and return to correct address"):
       Given("a program in memory with call and return")
