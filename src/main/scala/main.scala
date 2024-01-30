@@ -29,6 +29,8 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def incSP: Cpu = setSp((sp + 1).toShort)
   def decSP: Cpu = setSp((sp - 1).toShort)
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
+  def writeMemoryMulti(address:Int, values: Vector[Short]): Cpu =
+    values.indices.foldLeft(this)((cpu, offset)=>cpu.writeMemory(address+offset, values(offset)))
   def handleNext:Cpu = handler.handle(this, Instruction(memory(pc)))
   @tailrec
   final def handleNext(steps:Long):Cpu =
