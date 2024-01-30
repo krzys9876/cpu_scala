@@ -76,6 +76,7 @@ case class INSTR_LDZ_RM(r1:Short,r2:Short) extends Instruction(INSTR_LD_RM(r1,r2
 case class INSTR_LDNZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDNZ))
+case class INSTR_JMPNZ_A() extends Instruction(INSTR_JMP_A().valueWithOpcode(LDNZ)) // helper instruction for LDNZ A => PC
 case class INSTR_LDNZ_MR(r1:Short,r2:Short) extends Instruction(INSTR_LD_MR(r1,r2).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RM(r1:Short,r2:Short) extends Instruction(INSTR_LD_RM(r1,r2).valueWithOpcode(LDNZ))
 
@@ -91,3 +92,20 @@ case class INSTR_CMP(r1:Short,r2:Short) extends INSTR_ALU(CMP,r1,r2)
 case class INSTR_AND(r1:Short,r2:Short) extends INSTR_ALU(AND,r1,r2)
 case class INSTR_OR(r1:Short,r2:Short) extends INSTR_ALU(OR,r1,r2)
 case class INSTR_XOR(r1:Short,r2:Short) extends INSTR_ALU(XOR,r1,r2)
+
+// helper macros
+object MACRO:
+  def LD_A(imm: Short): Vector[Short] = // 2 steps
+    Vector(INSTR_LD_AL((imm & 0x00FF).toShort).value,INSTR_LD_AH(((imm >> 8) & 0x00FF).toShort).value)
+  def LD_R(imm: Short, reg: Short): Vector[Short] = // 3 steps
+    LD_A(imm) :+ INSTR_LD_RR(3,reg).value
+  def RET: Vector[Short] = // 3 steps
+    Vector(INSTR_LD_MR(1, 3).value, // LD (SP) => A - pop return address from stack
+      INSTR_INC_SP().value,
+      INSTR_JMP_A().value) // LD A => PC - jump to return address
+  def CALL(baseAddress: Short, callAddress: Short): Vector[Short] = // 7 steps
+    Vector(INSTR_DEC_SP().value) ++ // DEC SP
+      MACRO.LD_A((baseAddress + 7).toShort) ++ // return address to A (determined at compile time)
+      Vector(INSTR_LD_RM(3, 1).value) ++ // LD A => (SP) - push return address to stack
+      MACRO.LD_A(callAddress) ++ // call address
+      Vector(INSTR_JMP_A().value) // LD A => PC - jump to subroutine
