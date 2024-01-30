@@ -5,8 +5,6 @@ sealed trait Opcode:
   def isLegal: Boolean = true
 
 case object LD extends Opcode {override val code:Int=0x0 }
-case object RET extends Opcode {override val code:Int=0x3 } //TODO: this might be too complex to implement in a single cycle
-case object CALL extends Opcode {override val code:Int=0x5 } //TODO: this might be too complex to implement in a single cycle
 case object LDZ extends Opcode {override val code:Int=0x6 }
 case object LDNZ extends Opcode {override val code:Int=0x7 }
 
@@ -23,7 +21,7 @@ case class OpcodeIllegal(override val code:Int) extends Opcode:
   override val isLegal: Boolean = false
 
 object Opcode:
-  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),RET,OpcodeIllegal(4),CALL,LDZ,LDNZ,ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
+  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),OpcodeIllegal(3),OpcodeIllegal(4),OpcodeIllegal(5),LDZ,LDNZ,ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
 
 sealed trait AddressMode:
   def code: Int
@@ -86,6 +84,8 @@ case class INSTR_ADD(r1:Short,r2:Short) extends INSTR_ALU(ADD,r1,r2)
 case class INSTR_SUB(r1:Short,r2:Short) extends INSTR_ALU(SUB,r1,r2)
 case class INSTR_INC(r1:Short) extends INSTR_ALU(INC,r1,0)
 case class INSTR_DEC(r1:Short) extends INSTR_ALU(DEC,r1,0)
+case class INSTR_INC_SP() extends INSTR_ALU(INC,1,0) // helper instruction
+case class INSTR_DEC_SP() extends INSTR_ALU(DEC,1,0) // helper instruction
 case class INSTR_CMP(r1:Short,r2:Short) extends INSTR_ALU(CMP,r1,r2)
 case class INSTR_AND(r1:Short,r2:Short) extends INSTR_ALU(AND,r1,r2)
 case class INSTR_OR(r1:Short,r2:Short) extends INSTR_ALU(OR,r1,r2)
