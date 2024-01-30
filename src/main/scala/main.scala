@@ -2,6 +2,8 @@ package org.kr.cpu
 
 import AluOp.Add
 
+import scala.annotation.tailrec
+
 @main
 def main(args: String*): Unit =
   println("Main CPU function doing nothing")
@@ -28,6 +30,12 @@ case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
   def decSP: Cpu = setSp((sp - 1).toShort)
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
   def handleNext:Cpu = handler.handle(this, Instruction(memory(pc)))
+  @tailrec
+  final def handleNext(steps:Long):Cpu =
+    assume(steps >= 0)
+    steps match
+      case 0 => this
+      case _ => handleNext.handleNext(steps-1)
 
 trait CpuHandler:
   def create: Cpu
@@ -47,7 +55,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case (LD,_) => handleLD(cpu, instr)
       case (LDZ, true) | (LDNZ, false) => this.handleLD(cpu,instr) // handle actual LD instruction
       case (LDZ, false) | (LDNZ, true) => handleNOP(cpu) // do nothing (NOP)
-      case (ADD, _) | (SUB, _) | (AND, _) | (OR, _) | (XOR, _) | (CMP, _) => handleALU(cpu,instr)
+      case (ADD, _) | (SUB, _) | (INC, _) | (DEC, _) | (AND, _) | (OR, _) | (XOR, _) | (CMP, _) => handleALU(cpu,instr)
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleNOP(cpu: Cpu):Cpu = cpu.incPC
@@ -66,17 +74,19 @@ object CpuHandlerImmutable extends CpuHandler:
         //NOTE: do not increase PC if r2 is PC (0)
         if (instr.reg2 != 0) handled.incPC else handled
       case REG2MEMORY => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
-      case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
+      case _ => throw new IllegalArgumentException(f"Illegal LD instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
     val oper = instr.opcode match
       case ADD => AluOp.Add
       case SUB => AluOp.Sub
+      case INC => AluOp.Inc
+      case DEC => AluOp.Dec
       case AND => AluOp.And
       case OR => AluOp.Or
       case XOR => AluOp.Xor
       case CMP => AluOp.Compare
-      case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")
+      case _ => throw new IllegalArgumentException(f"Illegal ALU instruction: ${instr.value}%04X at ${cpu.pc}%04X")
 
     val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,oper)
     cpu.setReg(instr.reg1, res._1).setFl(res._2).incPC
@@ -108,13 +118,15 @@ case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toSh
     copy(m = m.updated(actualAddress, value))
 
 enum AluOp:
-  case Add, Sub, And, Or, Xor, Compare
+  case Add, Sub, Inc, Dec, And, Or, Xor, Compare
 
 object Alu:
   def apply(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
     op match
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)
+      case AluOp.Inc => add(a,1,f) // ignore b
+      case AluOp.Dec => add(a,-1,f) // ignore b
       case AluOp.And | AluOp.Or | AluOp.Xor => bitwise(a,b,f,op)
       case AluOp.Compare => compare(a,b,f)
 

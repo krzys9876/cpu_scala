@@ -26,7 +26,7 @@ object TestUtils:
     // Make sure that generators actually worked (it is practically impossible not to set 3+ register in 1000 takes)
     assert((0 to 15).count(cpu.register(_) != 0) > 3)
     cpu
-
+  
   def createRandomStateCpuWithMemory(toFill:Int = 50000):Cpu =
     generateMemoryContents(toFill).foldLeft(createRandomStateCpu)({ case (cpu, pair) => cpu.writeMemory(pair._1, pair._2) })
 
@@ -42,3 +42,5 @@ object TestUtils:
     // Make sure that generators actually worked (it is practically impossible not to set 10+ addresses in 1000 takes)
     assert(pairs.keys.size > 10)
     pairs
+    
+  def createResetCpu: Cpu = testCpuHandler.create.reset

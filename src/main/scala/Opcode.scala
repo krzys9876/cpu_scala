@@ -11,17 +11,19 @@ case object LDZ extends Opcode {override val code:Int=0x6 }
 case object LDNZ extends Opcode {override val code:Int=0x7 }
 
 case object ADD extends Opcode {override val code:Int=0x8 }
-case object SUB extends Opcode {override val code:Int=0xA }
-case object CMP extends Opcode {override val code:Int=0xB }
-case object AND extends Opcode {override val code:Int=0xC }
-case object OR extends Opcode {override val code:Int=0xD }
-case object XOR extends Opcode {override val code:Int=0xE }
+case object SUB extends Opcode {override val code:Int=0x9 }
+case object INC extends Opcode {override val code: Int = 0xA}
+case object DEC extends Opcode {override val code: Int = 0xB}
+case object CMP extends Opcode {override val code:Int=0xC }
+case object AND extends Opcode {override val code:Int=0xD }
+case object OR extends Opcode {override val code:Int=0xE }
+case object XOR extends Opcode {override val code:Int=0xF }
 
 case class OpcodeIllegal(override val code:Int) extends Opcode:
   override val isLegal: Boolean = false
 
 object Opcode:
-  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),RET,OpcodeIllegal(4),CALL,LDZ,LDNZ,ADD,OpcodeIllegal(9),SUB,CMP,AND,OR,XOR,OpcodeIllegal(0xF))
+  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),RET,OpcodeIllegal(4),CALL,LDZ,LDNZ,ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
 
 sealed trait AddressMode:
   def code: Int
@@ -82,6 +84,8 @@ class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | 
 
 case class INSTR_ADD(r1:Short,r2:Short) extends INSTR_ALU(ADD,r1,r2)
 case class INSTR_SUB(r1:Short,r2:Short) extends INSTR_ALU(SUB,r1,r2)
+case class INSTR_INC(r1:Short) extends INSTR_ALU(INC,r1,0)
+case class INSTR_DEC(r1:Short) extends INSTR_ALU(DEC,r1,0)
 case class INSTR_CMP(r1:Short,r2:Short) extends INSTR_ALU(CMP,r1,r2)
 case class INSTR_AND(r1:Short,r2:Short) extends INSTR_ALU(AND,r1,r2)
 case class INSTR_OR(r1:Short,r2:Short) extends INSTR_ALU(OR,r1,r2)

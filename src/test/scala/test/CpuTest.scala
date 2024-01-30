@@ -148,6 +148,20 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
         (a, b) => assert(Alu(a, b, 0xFF00.toShort, AluOp.Sub) == Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add))
 
+    Scenario("express Inc as Add with second operand 1"):
+      Given("a number")
+      When("increased")
+      Then("result is the same as sum with 1")
+      forAll(TestUtils.anyValueGen):
+        a => assert(Alu(a, 1, 0xFF00.toShort, AluOp.Add) == Alu(a, 0, 0xFF00.toShort, AluOp.Inc))
+
+    Scenario("express Dec as Add with second operand -1"):
+      Given("a number")
+      When("increased")
+      Then("result is the same as sum with -1")
+      forAll(TestUtils.anyValueGen):
+        a => assert(Alu(a, -1, 0xFF00.toShort, AluOp.Add) == Alu(a, 0, 0xFF00.toShort, AluOp.Dec))
+
     Scenario("bitwise And"):
       Given("two different numbers")
       When("and'ed")

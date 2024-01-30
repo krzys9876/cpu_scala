@@ -153,6 +153,14 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
       Given("a CPU in random state with SUB r1,r2 as next instruction (excl. pc, fl)")
       doTestALU(TestUtils.createRandomStateCpu, INSTR_SUB.apply, AluOp.Sub)
 
+    Scenario("handle INC (r1+=1)"):
+      Given("a CPU in random state with INC r1 as next instruction (excl. pc, fl)")
+      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_INC.apply(r1), AluOp.Inc)
+
+    Scenario("handle DEC (r1-=1)"):
+      Given("a CPU in random state with INC r1 as next instruction (excl. pc, fl)")
+      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_DEC.apply(r1), AluOp.Dec)
+
     Scenario("handle AND (r1&=r2)"):
       Given("a CPU in random state with AND r1,r2 as next instruction (excl. pc, fl)")
       doTestALU(TestUtils.createRandomStateCpu, INSTR_AND.apply, AluOp.And)
