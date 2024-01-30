@@ -33,18 +33,18 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
 
     Scenario("increase PC"):
       Given("a cpu instance in random state")
-      val cpuInit = TestUtils.createRandomStateCpu.setPc(0x1234.toShort)
-      val pcInit = cpuInit.pc
-      When("PC is increased")
-      val cpuIncPC = cpuInit.incPC
-      val pcInc = cpuIncPC.pc
-      Then("new PC value is equal to old value increased by 1")
-      assert(pcInc==pcInit+1)
+      forAll(TestUtils.addressGen):
+        pc => whenever(pc < 0xFFFF):
+          val cpuInit = TestUtils.createRandomStateCpu.setPc(pc.toShort)
+          When("PC is increased")
+          val cpuIncPC = cpuInit.incPC
+          Then("new PC value is equal to old value increased by 1")
+          assert(cpuIncPC.pc == cpuInit.pc + 1)
 
     Scenario("overflow PC"):
       Given("a cpu instance in random state and PC set to maximum value")
       val cpuInit = TestUtils.createRandomStateCpu.setPc(0xFFFF.toShort)
-      assert(cpuInit.pc == -1) //NOTE: this is a signed type
+      assert(cpuInit.pc == 0xFFFF.toShort)
       When("PC is increased")
       val cpuIncPC = cpuInit.incPC
       Then("new PC value is 0")
@@ -52,13 +52,13 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
 
     Scenario("increase SP"):
       Given("a cpu instance in random state")
-      val cpuInit = TestUtils.createRandomStateCpu.setSp(0x5432.toShort)
-      val spInit = cpuInit.sp
-      When("SP is increased")
-      val cpuIncSP = cpuInit.incSP
-      val spInc = cpuIncSP.sp
-      Then("new SP value is equal to old value increased by 1")
-      assert(spInc == spInit + 1)
+      forAll(TestUtils.addressGen):
+        sp => whenever(sp < 0xFFFF)
+          val cpuInit = TestUtils.createRandomStateCpu.setSp(sp.toShort)
+          When("SP is increased")
+          val cpuIncSP = cpuInit.incSP
+          Then("new SP value is equal to old value increased by 1")
+          assert(cpuIncSP.sp == cpuInit.sp + 1)
 
     Scenario("overflow SP when increasing"):
       Given("a cpu instance in random state and SP set to maximum value")
@@ -70,13 +70,13 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
 
     Scenario("decrease SP"):
       Given("a cpu instance in random state")
-      val cpuInit = TestUtils.createRandomStateCpu.setSp(0x8765.toShort)
-      val spInit = cpuInit.sp
-      When("SP is decreased")
-      val cpuDecSP = cpuInit.decSP
-      val spInc = cpuDecSP.sp
-      Then("new SP value is equal to old value decreased by 1")
-      assert(spInc == spInit - 1)
+      forAll(TestUtils.addressGen):
+        sp =>
+          val cpuInit = TestUtils.createRandomStateCpu.setSp(sp.toShort)
+          When("SP is decreased")
+          val cpuIncSP = cpuInit.decSP
+          Then("new SP value is equal to old value decreased by 1")
+          assert(cpuIncSP.sp == cpuInit.sp - 1)
 
     Scenario("overflow SP when decreasing"):
       Given("a cpu instance in random state and SP set to 0")
