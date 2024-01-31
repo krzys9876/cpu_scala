@@ -236,3 +236,18 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("decoded")
       Then("resulting address mode has the same number")
       modeNum.foreach(num => assert(AddressMode.codes(num).code == num))
+
+  Feature("In/Out operations"):
+    Scenario("output a value to each port"):
+      Given("A cpu instance in random state")
+      val cpuInit = TestUtils.createRandomStateCpu
+      When("a value is outputted")
+      Then("output file contains proper register content")
+      forAll(TestUtils.portGen,TestUtils.registerIndexGen):
+        (port,reg) =>
+          val value = cpuInit.register(reg)
+          val cpuAfter = cpuInit.output(port, value)
+          assert(cpuAfter.outputFile.lastPort == port)
+          assert(cpuAfter.outputFile.lastValue == value)
+          assert(cpuAfter.outputFile(port,0) == value)
+

@@ -74,12 +74,16 @@ case class INSTR_LD_RR(r1:Short,r2:Short) extends Instruction((LD.code | (REGIST
 case class INSTR_JMP_A() extends Instruction((LD.code | (REGISTERS.code << 4) | (3 << 8)).toShort) // helper instruction for LD A => PC
 case class INSTR_LD_MR(r:Short,a:Short) extends Instruction((LD.code | (MEMORY2REG.code << 4) | ((r & 0x000F) << 8) | ((a & 0x000F) << 12)).toShort)
 case class INSTR_LD_RM(r:Short,a:Short) extends Instruction((LD.code | (REG2MEMORY.code << 4) | ((r & 0x000F) << 8) | ((a & 0x000F) << 12)).toShort)
+case class INSTR_LD_RO(r: Short, p: Short) extends Instruction((LD.code | (OUTPUT_REG.code << 4) | ((r & 0x000F) << 8) | ((p & 0x000F) << 12)).toShort)
+case class INSTR_LD_RI(r: Short, p: Short) extends Instruction((LD.code | (INPUT_REG.code << 4) | ((r & 0x000F) << 8) | ((p & 0x000F) << 12)).toShort)
 
 case class INSTR_LDZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDZ))
 case class INSTR_LDZ_MR(r:Short,a:Short) extends Instruction(INSTR_LD_MR(r,a).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).valueWithOpcode(LDZ))
+case class INSTR_LDZ_RO(r: Short, p: Short) extends Instruction(INSTR_LD_RO(r,p).valueWithOpcode(LDZ))
+case class INSTR_LDZ_RI(r: Short, p: Short) extends Instruction(INSTR_LD_RI(r,p).valueWithOpcode(LDZ))
 
 case class INSTR_LDNZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDNZ))
@@ -87,6 +91,8 @@ case class INSTR_LDNZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r
 case class INSTR_JMPNZ_A() extends Instruction(INSTR_JMP_A().valueWithOpcode(LDNZ)) // helper instruction for LDNZ A => PC
 case class INSTR_LDNZ_MR(r:Short,a:Short) extends Instruction(INSTR_LD_MR(r,a).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).valueWithOpcode(LDNZ))
+case class INSTR_LDNZ_RO(r: Short, p: Short) extends Instruction(INSTR_LD_RO(r, p).valueWithOpcode(LDNZ))
+case class INSTR_LDNZ_RI(r: Short, p: Short) extends Instruction(INSTR_LD_RI(r, p).valueWithOpcode(LDNZ))
 
 class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort) 
 

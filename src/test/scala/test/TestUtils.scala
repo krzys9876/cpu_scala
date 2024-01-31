@@ -11,6 +11,7 @@ object TestUtils:
   val anyValueGen: Gen[Short] = Gen.choose(Short.MinValue, Short.MaxValue)
   val byteValueGen: Gen[Short] = Gen.choose(0.toShort, 0xFF.toShort)
   val registerIndexGen: Gen[Short] = Gen.choose(0.toShort, 15.toShort)
+  val portGen: Gen[Short] = Gen.choose(0.toShort, 15.toShort)
   val addressGen: Gen[Int] = Gen.choose(0, 0xFFFF)
 
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
