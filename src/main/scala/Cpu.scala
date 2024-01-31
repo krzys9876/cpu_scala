@@ -2,7 +2,7 @@ package org.kr.cpu
 
 import scala.annotation.tailrec
 
-case class Cpu(handler:CpuHandler,register:Register,memory:Memory):
+case class Cpu(handler:CpuHandler,register:Register,memory:Memory,output:OutputFile):
   def reset: Cpu = handler.reset(this)
   // predefined registers
   def pc: Short = register(0)
@@ -41,7 +41,7 @@ trait CpuHandler:
   def handle(cpu:Cpu, instr:Instruction): Cpu
 
 object CpuHandlerImmutable extends CpuHandler:
-  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory)
+  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory, OutputFile.blank)
   override def reset(cpu: Cpu): Cpu = cpu.copy(register = emptyRegs)
   override def setReg(cpu: Cpu, index: Int, value: Short): Cpu = cpu.copy(register = cpu.register.set(index, value))
   override def writeMemory(cpu: Cpu, address: Int, value: Short): Cpu = cpu.copy(memory = cpu.memory.write(address,value))
