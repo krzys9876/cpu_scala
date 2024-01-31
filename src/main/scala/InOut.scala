@@ -31,3 +31,17 @@ class OutputFile(val files:Map[Short,OutputPort], val lastPort:Short=0, val last
 
 object OutputFile:
   def blank:OutputFile= new OutputFile(Map())
+
+trait InputPort:
+  def read: Short
+  def refresh: InputPort
+
+class InputPortVector(val data:Vector[Short], val default: Short = 0) extends InputPort:
+  override def read: Short = data.headOption.getOrElse(default)
+  override def refresh: InputPort = new InputPortVector(data.tail, default)
+
+class InputFile(map: Map[Short, InputPort] = Map(), default: Short = 0):
+  def read(port: Short): (Short, InputFile) =
+    map.get(port) match
+      case None => (default, this)
+      case Some(inputPort) => (inputPort.read, new InputFile(map + (port -> inputPort.refresh)))
