@@ -53,12 +53,16 @@ class Instruction(val value:Short):
   // bits 8-15 depending on address mode (immediate)
   lazy val immediate: Short = ((value & 0xFF00) >> 8).toShort
   // bits 8-11 depending on address mode (register/memory)
-  lazy val reg1: Short = ((value & 0x0F00) >> 8).toShort
-  lazy val reg: Short = reg1
+  private lazy val reg1: Short = ((value & 0x0F00) >> 8).toShort
+  lazy val regSrc: Short = reg1 // register-register
+  lazy val regResult: Short = reg1 // ALU
+  lazy val reg: Short = reg1 // register-memory, in-out
   // bits 12-15 depending on address mode (register/memory, in/out)
-  lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
-  lazy val port: Short = reg2
-  lazy val addr: Short = reg2
+  private lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
+  lazy val regDest: Short = reg2 // register-register
+  lazy val regOperand: Short = reg2 // ALU
+  lazy val port: Short = reg2 // in/out
+  lazy val addr: Short = reg2 // register-memory
 
   def valueWithOpcode(newOpcode:Opcode): Short = (value & 0xFFF0 | newOpcode.code).toShort
   def replaceOpcode(newOpcode:Opcode): Instruction = Instruction(valueWithOpcode(newOpcode))
@@ -68,21 +72,21 @@ case class INSTR_LD_AL(imm:Short) extends Instruction((LD.code | (IMMEDIATE_LOW.
 case class INSTR_LD_AH(imm:Short) extends Instruction((LD.code | (IMMEDIATE_HIGH.code << 4) | ((imm & 0xFF) << 8)).toShort)
 case class INSTR_LD_RR(r1:Short,r2:Short) extends Instruction((LD.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
 case class INSTR_JMP_A() extends Instruction((LD.code | (REGISTERS.code << 4) | (3 << 8)).toShort) // helper instruction for LD A => PC
-case class INSTR_LD_MR(r1:Short,r2:Short) extends Instruction((LD.code | (MEMORY2REG.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
-case class INSTR_LD_RM(r1:Short,r2:Short) extends Instruction((LD.code | (REG2MEMORY.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
+case class INSTR_LD_MR(r:Short,a:Short) extends Instruction((LD.code | (MEMORY2REG.code << 4) | ((r & 0x000F) << 8) | ((a & 0x000F) << 12)).toShort)
+case class INSTR_LD_RM(r:Short,a:Short) extends Instruction((LD.code | (REG2MEMORY.code << 4) | ((r & 0x000F) << 8) | ((a & 0x000F) << 12)).toShort)
 
 case class INSTR_LDZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDZ))
-case class INSTR_LDZ_MR(r1:Short,r2:Short) extends Instruction(INSTR_LD_MR(r1,r2).valueWithOpcode(LDZ))
-case class INSTR_LDZ_RM(r1:Short,r2:Short) extends Instruction(INSTR_LD_RM(r1,r2).valueWithOpcode(LDZ))
+case class INSTR_LDZ_MR(r:Short,a:Short) extends Instruction(INSTR_LD_MR(r,a).valueWithOpcode(LDZ))
+case class INSTR_LDZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).valueWithOpcode(LDZ))
 
 case class INSTR_LDNZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDNZ))
 case class INSTR_JMPNZ_A() extends Instruction(INSTR_JMP_A().valueWithOpcode(LDNZ)) // helper instruction for LDNZ A => PC
-case class INSTR_LDNZ_MR(r1:Short,r2:Short) extends Instruction(INSTR_LD_MR(r1,r2).valueWithOpcode(LDNZ))
-case class INSTR_LDNZ_RM(r1:Short,r2:Short) extends Instruction(INSTR_LD_RM(r1,r2).valueWithOpcode(LDNZ))
+case class INSTR_LDNZ_MR(r:Short,a:Short) extends Instruction(INSTR_LD_MR(r,a).valueWithOpcode(LDNZ))
+case class INSTR_LDNZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).valueWithOpcode(LDNZ))
 
 class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort) 
 
@@ -104,7 +108,7 @@ object MACRO:
   def LD_R(imm: Short, reg: Short): Vector[Short] = // 3 steps
     LD_A(imm) :+ INSTR_LD_RR(3,reg).value
   def RET: Vector[Short] = // 3 steps
-    Vector(INSTR_LD_MR(1, 3).value, // LD (SP) => A - pop return address from stack
+    Vector(INSTR_LD_MR(3, 1).value, // LD (SP) => A - pop return address from stack
       INSTR_INC_SP().value,
       INSTR_JMP_A().value) // LD A => PC - jump to return address
   def CALL(baseAddress: Short, callAddress: Short): Vector[Short] = // 7 steps

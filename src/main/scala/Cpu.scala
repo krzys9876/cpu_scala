@@ -61,21 +61,21 @@ object CpuHandlerImmutable extends CpuHandler:
       case NOP_MODE => handleNOP(cpu)
       case IMMEDIATE_LOW => cpu.setAL(instr.immediate).incPC
       case IMMEDIATE_HIGH => cpu.setAH(instr.immediate).incPC
-      case REGISTERS =>
-        val handled = cpu.setReg(instr.reg2, cpu.register(instr.reg1))
+      case REGISTERS => // rSrc=>rDest
+        val handled = cpu.setReg(instr.regDest, cpu.register(instr.regSrc))
         //NOTE: do not increase PC if r2 is PC (0)
-        if (instr.reg2 != 0) handled.incPC else handled
+        if (instr.regDest != 0) handled.incPC else handled
       case MEMORY2REG => // reg<=(addr)
-        val handled = cpu.setReg(instr.reg2, cpu.memory(cpu.register(instr.reg1)))
+        val handled = cpu.setReg(instr.reg, cpu.memory(cpu.register(instr.addr)))
         //NOTE: do not increase PC if r2 is PC (0)
-        if (instr.reg2 != 0) handled.incPC else handled
+        if (instr.reg != 0) handled.incPC else handled
       case REG2MEMORY => // reg=>(addr)
         cpu.writeMemory(cpu.register(instr.addr), cpu.register(instr.reg)).incPC
       case _ => throw new IllegalArgumentException(f"Illegal LD instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
-    val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,instr.opcode)
-    cpu.setReg(instr.reg1, res._1).setFl(res._2).incPC
+    val res = Alu(cpu.register(instr.regResult),cpu.register(instr.regOperand),cpu.fl,instr.opcode)
+    cpu.setReg(instr.regResult, res._1).setFl(res._2).incPC
 
   private def emptyRegs: Register = RegisterImmutable.empty
   private def emptyMemory: Memory = MemoryImmutable()

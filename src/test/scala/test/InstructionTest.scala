@@ -47,7 +47,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
     Scenario("read memory to PC (jump)"):
       Given("a CPU in random state with LD (r1),r2 as next instruction")
       And("r2 is PC")
-      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory(),INSTR_LD_MR(_, 0))
+      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory(),INSTR_LD_MR(0, _))
 
     Scenario("write memory"):
       Given("a CPU in random state with LD r1,(r2) as next instruction")
@@ -125,8 +125,8 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
     Scenario("read memory to PC when Z flag matches instruction condition (jump conditional)"):
       Given("a CPU in random state with LD(N)Z (r1),r2 as next instruction")
       And("r2 is PC")
-      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory().setZ(), INSTR_LDZ_MR(_, 0))
-      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory().clearZ(), INSTR_LDNZ_MR(_, 0))
+      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory().setZ(), INSTR_LDZ_MR(0, _))
+      doTestLDx_M_PC(TestUtils.createRandomStateCpuWithMemory().clearZ(), INSTR_LDNZ_MR(0, _))
 
     Scenario("read memory to PC when Z flag does not match instruction condition"):
       Given("a CPU in random state with LD(N)Z (r1),r2 as next instruction")
@@ -250,28 +250,28 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           //println(f"pc: $pc R1($r1): ${cpuAfter.register(r1)} R2(0) after: ${cpuAfter.pc} R2 before: ${cpuBefore.pc}")
           assert(cpuAfter.pc == cpuAfter.register(r1))
 
-  private def doTestLDx_MR(cpuStart: Cpu, instr: (Short, Short) => Instruction, register2Predicate: Short => Boolean): Unit =
+  private def doTestLDx_MR(cpuStart: Cpu, instr: (Short, Short) => Instruction, registerPredicate: Short => Boolean): Unit =
     forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
-      (pc, r1, r2) =>
+      (pc, addr, reg) =>
         //NOTE: test only non-zero memory as there may be too many zeros (memory may not be fully initialized for performance reasons)
-        whenever(register2Predicate(r2) && cpuStart.memory(cpuStart.register(r1)) != 0):
-          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r1, r2).value)
+        whenever(registerPredicate(reg) && cpuStart.memory(cpuStart.register(addr)) != 0):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(reg, addr).value)
           When("executed")
-          val sourceMemory = cpuBefore.memory(cpuBefore.register(r1)) // this is to copy value in case both registers are equal
+          val sourceMemory = cpuBefore.memory(cpuBefore.register(addr)) // this is to copy value in case both registers are equal
           val cpuAfter = cpuBefore.handleNext
           Then("register 2 is loaded with memory contents at address from register 1")
           //println(f"(R1)($r1): ${cpuAfter.register(r1)} ${cpuAfter.memory(cpuAfter.register(r1))} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
-          assert(cpuAfter.register(r2) == sourceMemory)
+          assert(cpuAfter.register(reg) == sourceMemory)
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
 
   private def doTestLDx_M_PC(cpuStart: Cpu, instr: Short => Instruction): Unit =
     forAll(TestUtils.addressGen, TestUtils.registerIndexGen):
-      (pc, r1) =>
-        whenever(cpuStart.memory(cpuStart.register(r1)) != 0):
-          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r1).value)
+      (pc, addr) =>
+        whenever(cpuStart.memory(cpuStart.register(addr)) != 0):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(addr).value)
           When("executed")
-          val sourceMemory = cpuBefore.memory(cpuBefore.register(r1)) // this is to copy value in case both registers are equal
+          val sourceMemory = cpuBefore.memory(cpuBefore.register(addr)) // this is to copy value in case both registers are equal
           val cpuAfter = cpuBefore.handleNext
           Then("PC is loaded with memory contents at address from register 1")
           //println(f"(R1)($r1): ${cpuAfter.register(r1)} ${cpuAfter.memory(cpuAfter.register(r1))} R2(0) after: ${cpuAfter.pc} R2 before: ${cpuBefore.pc}")
