@@ -65,11 +65,12 @@ object CpuHandlerImmutable extends CpuHandler:
         val handled = cpu.setReg(instr.reg2, cpu.register(instr.reg1))
         //NOTE: do not increase PC if r2 is PC (0)
         if (instr.reg2 != 0) handled.incPC else handled
-      case MEMORY2REG =>
+      case MEMORY2REG => // reg<=(addr)
         val handled = cpu.setReg(instr.reg2, cpu.memory(cpu.register(instr.reg1)))
         //NOTE: do not increase PC if r2 is PC (0)
         if (instr.reg2 != 0) handled.incPC else handled
-      case REG2MEMORY => cpu.writeMemory(cpu.register(instr.reg2), cpu.register(instr.reg1)).incPC
+      case REG2MEMORY => // reg=>(addr)
+        cpu.writeMemory(cpu.register(instr.addr), cpu.register(instr.reg)).incPC
       case _ => throw new IllegalArgumentException(f"Illegal LD instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
