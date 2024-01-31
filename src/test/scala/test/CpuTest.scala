@@ -251,3 +251,15 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
           assert(cpuAfter.outputFile.lastValue == value)
           assert(cpuAfter.outputFile(port,0) == value)
 
+    Scenario("output multiple values"):
+      Given("A cpu instance in random state")
+      val cpuInit = TestUtils.createRandomStateCpu
+      When("value are outputted")
+      // output A, B ...
+      val cpuOutput = (0 to 9).foldLeft(cpuInit)((cpu,value) => cpu.output(0xB, ('A'.toShort+value).toShort))
+      Then("output file contains the same values")
+      assert(cpuOutput.outputFile.files(0xB).size==10)
+      val outText = (0 to 9).foldLeft("")((t,v)=> t + cpuOutput.outputFile.files(0xB)(v).toChar)
+      assert(outText == "ABCDEFGHIJ")
+
+
