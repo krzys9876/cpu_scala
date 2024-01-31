@@ -50,12 +50,13 @@ class Instruction(val value:Short):
   val opcode:Opcode = Opcode.codes((value & 0x000F).toShort)
   // bits 4-7
   val mode:AddressMode = AddressMode.codes(((value & 0x00F0) >> 4).toShort)
-  // bits 8-15 depending on address mode
+  // bits 8-15 depending on address mode (immediate)
   lazy val immediate: Short = ((value & 0xFF00) >> 8).toShort
-  // bits 8-11 depending on address mode
+  // bits 8-11 depending on address mode (register/memory)
   lazy val reg1: Short = ((value & 0x0F00) >> 8).toShort
-  // bits 12-15 depending on address mode
+  // bits 12-15 depending on address mode (register/memory, in/out)
   lazy val reg2: Short = ((value & 0xF000) >> 12).toShort
+  lazy val port: Short = reg2
 
   def valueWithOpcode(newOpcode:Opcode): Short = (value & 0xFFF0 | newOpcode.code).toShort
   def replaceOpcode(newOpcode:Opcode): Instruction = Instruction(valueWithOpcode(newOpcode))
