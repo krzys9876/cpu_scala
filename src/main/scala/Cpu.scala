@@ -48,10 +48,10 @@ object CpuHandlerImmutable extends CpuHandler:
 
   override def handle(cpu: Cpu, instr:Instruction): Cpu =
     (instr.opcode, cpu.flZ) match
+      case (op, _) if op.isAlu => handleALU(cpu,instr)
       case (LD,_) => handleLD(cpu, instr)
-      case (LDZ, true) | (LDNZ, false) => this.handleLD(cpu,instr) // handle actual LD instruction
+      case (LDZ, true) | (LDNZ, false) => handleLD(cpu,instr) // handle actual LD instruction
       case (LDZ, false) | (LDNZ, true) => handleNOP(cpu) // do nothing (NOP)
-      case (ADD, _) | (SUB, _) | (INC, _) | (DEC, _) | (AND, _) | (OR, _) | (XOR, _) | (CMP, _) => handleALU(cpu,instr)
       case _ => throw new IllegalArgumentException(f"Illegal instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleNOP(cpu: Cpu):Cpu = cpu.incPC
@@ -73,18 +73,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case _ => throw new IllegalArgumentException(f"Illegal LD instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
-    val oper = instr.opcode match
-      case ADD => AluOp.Add
-      case SUB => AluOp.Sub
-      case INC => AluOp.Inc
-      case DEC => AluOp.Dec
-      case AND => AluOp.And
-      case OR => AluOp.Or
-      case XOR => AluOp.Xor
-      case CMP => AluOp.Compare
-      case _ => throw new IllegalArgumentException(f"Illegal ALU instruction: ${instr.value}%04X at ${cpu.pc}%04X")
-
-    val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,oper)
+    val res = Alu(cpu.register(instr.reg1),cpu.register(instr.reg2),cpu.fl,instr.opcode)
     cpu.setReg(instr.reg1, res._1).setFl(res._2).incPC
 
   private def emptyRegs: Register = RegisterImmutable.empty
@@ -117,7 +106,20 @@ enum AluOp:
   case Add, Sub, Inc, Dec, And, Or, Xor, Compare
 
 object Alu:
-  def apply(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
+  def apply(a:Short,b:Short,f:Short,code:Opcode):(Short,Short) =
+    val oper = code match
+      case ADD => AluOp.Add
+      case SUB => AluOp.Sub
+      case INC => AluOp.Inc
+      case DEC => AluOp.Dec
+      case AND => AluOp.And
+      case OR => AluOp.Or
+      case XOR => AluOp.Xor
+      case CMP => AluOp.Compare
+      case _ => throw new IllegalArgumentException(f"Illegal ALU instruction: ${code.code}%04X")
+    calculate(a,b,f,oper)
+
+  private def calculate(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
     op match
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)

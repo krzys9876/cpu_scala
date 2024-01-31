@@ -147,35 +147,35 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
   Feature("ALU"):
     Scenario("handle ADD (r1+=r2)"):
       Given("a CPU in random state with ADD r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_ADD.apply, AluOp.Add)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_ADD.apply, ADD)
 
     Scenario("handle SUB (r1-=r2)"):
       Given("a CPU in random state with SUB r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_SUB.apply, AluOp.Sub)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_SUB.apply, SUB)
 
     Scenario("handle INC (r1+=1)"):
       Given("a CPU in random state with INC r1 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_INC.apply(r1), AluOp.Inc)
+      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_INC.apply(r1), INC)
 
     Scenario("handle DEC (r1-=1)"):
       Given("a CPU in random state with INC r1 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_DEC.apply(r1), AluOp.Dec)
+      doTestALU(TestUtils.createRandomStateCpu, (r1,_)=>INSTR_DEC.apply(r1), DEC)
 
     Scenario("handle AND (r1&=r2)"):
       Given("a CPU in random state with AND r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_AND.apply, AluOp.And)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_AND.apply, AND)
 
     Scenario("handle OR (r1|=r2)"):
       Given("a CPU in random state with OR r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_OR.apply, AluOp.Or)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_OR.apply, OR)
 
     Scenario("handle XOR (r1^=r2)"):
       Given("a CPU in random state with XOR r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_XOR.apply, AluOp.Xor)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_XOR.apply, XOR)
 
     Scenario("handle CMP (r1 ? r2)"):
       Given("a CPU in random state with CMP r1,r2 as next instruction (excl. pc, fl)")
-      doTestALU(TestUtils.createRandomStateCpu, INSTR_CMP.apply, AluOp.Compare)
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_CMP.apply, CMP)
 
   private def doTestNOP(cpuStart: Cpu, instr: Instruction): Unit =
     forAll(TestUtils.addressGen):
@@ -292,7 +292,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
 
-  private def doTestALU(cpuStart: Cpu, instr: (Short, Short) => Instruction, oper: AluOp): Unit =
+  private def doTestALU(cpuStart: Cpu, instr: (Short, Short) => Instruction, code: Opcode): Unit =
     forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
       (pc, r1, r2) =>
         whenever(r1!=0 && r1!=2): // exclude pc and fl since they are modified during instruction handling
@@ -303,7 +303,7 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           val cpuAfter = cpuBefore.handleNext
           Then("r1 is changed with according to ALU operation")
           //println(f"R1($r1) after: ${cpuAfter.register(r1)}  R1 before: ${cpuBefore.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} R2 before: ${cpuBefore.register(r2)}")
-          val res= Alu(r1Before, r2Before, cpuBefore.fl, oper)
+          val res= Alu(r1Before, r2Before, cpuBefore.fl, code)
           assert(cpuAfter.register(r1) == res._1)
           assert(cpuAfter.fl == res._2)
           And("PC is increased by 1")

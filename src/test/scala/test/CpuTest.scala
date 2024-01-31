@@ -103,14 +103,14 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("added")
       Then("result is sum and flags are off")
       forAll(TestUtils.smallPositiveValueGen,TestUtils.smallPositiveValueGen):
-        (a, b) => assert(Alu(a,b,0xFFFF.toShort,AluOp.Add) == (a+b,0xFFF8.toShort))
+        (a, b) => assert(Alu(a,b,0xFFFF.toShort,ADD) == (a+b,0xFFF8.toShort))
 
     Scenario("add the same numbers with opposite signs"):
       Given("a (small) positive number")
       When("the same numbers are added with opposite signs")
       Then("result is 0 and zero flag is set")
       forAll(TestUtils.smallPositiveValueGen):
-        a => assert(Alu(a, (-a).toShort, 0xFF00.toShort, AluOp.Add) == (0, 0xFF01.toShort))
+        a => assert(Alu(a, (-a).toShort, 0xFF00.toShort, ADD) == (0, 0xFF01.toShort))
 
     Scenario("add with carry"):
       Given("two different (large) positive numbers")
@@ -118,49 +118,49 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("result is sum trimmed to 16b and carry flag is set")
       //NOTE: forAll may sometimes not respect Gen min/max values due to defect in ScalaCheck
       forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu(a,b,0xFF00.toShort,AluOp.Add) == ((a+b).toShort,0xFF04.toShort))
+        (a, b) => assert(Alu(a,b,0xFF00.toShort,ADD) == ((a+b).toShort,0xFF04.toShort))
 
     Scenario("add negative numbers w/o borrow"):
       Given("two different (small) negative numbers")
       When("added")
       Then("result is (negative) sum trimmed to 16b and flags are off")
       forAll(TestUtils.smallPositiveValueGen, TestUtils.smallPositiveValueGen):
-        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((-(a + b)).toShort, 0xFF00.toShort))
+        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, ADD) == ((-(a + b)).toShort, 0xFF00.toShort))
 
     Scenario("add negative numbers with borrow"):
       Given("two different (large) negative numbers")
       When("added")
       Then("result is sum trimmed to (positive) 16b and borrow flag is set")
       forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((-(a + b)).toShort, 0xFF02.toShort))
+        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, ADD) == ((-(a + b)).toShort, 0xFF02.toShort))
 
     Scenario("add large numbers with opposite signs"):
       Given("two different (large) numbers with opposite signs")
       When("added")
       Then("result is sum trimmed to 16b and flags are off")
       forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add) == ((a - b).toShort, 0xFF00.toShort))
+        (a, b) => assert(Alu(a, (-b).toShort, 0xFF00.toShort, ADD) == ((a - b).toShort, 0xFF00.toShort))
 
     Scenario("express Sub as Add with second operand negated"):
       Given("two different numbers")
       When("subtracted")
       Then("result is the same as sum with second operand negated")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
-        (a, b) => assert(Alu(a, b, 0xFF00.toShort, AluOp.Sub) == Alu(a, (-b).toShort, 0xFF00.toShort, AluOp.Add))
+        (a, b) => assert(Alu(a, b, 0xFF00.toShort, SUB) == Alu(a, (-b).toShort, 0xFF00.toShort, ADD))
 
     Scenario("express Inc as Add with second operand 1"):
       Given("a number")
       When("increased")
       Then("result is the same as sum with 1")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, 1, 0xFF00.toShort, AluOp.Add) == Alu(a, 0, 0xFF00.toShort, AluOp.Inc))
+        a => assert(Alu(a, 1, 0xFF00.toShort, ADD) == Alu(a, 0, 0xFF00.toShort, INC))
 
     Scenario("express Dec as Add with second operand -1"):
       Given("a number")
       When("increased")
       Then("result is the same as sum with -1")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, -1, 0xFF00.toShort, AluOp.Add) == Alu(a, 0, 0xFF00.toShort, AluOp.Dec))
+        a => assert(Alu(a, -1, 0xFF00.toShort, ADD) == Alu(a, 0, 0xFF00.toShort, DEC))
 
     Scenario("bitwise And"):
       Given("two different numbers")
@@ -168,14 +168,14 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("result is bitwise And")
       forAll(TestUtils.anyValueGen,TestUtils.anyValueGen):
         (a, b) =>
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.And) == ((a & b).toShort, (0xFFFE | (if ((a & b)==0) 1 else 0)).toShort))
+          assert(Alu(a, b, 0xFFFF.toShort, AND) == ((a & b).toShort, (0xFFFE | (if ((a & b)==0) 1 else 0)).toShort))
 
     Scenario("bitwise And with 0"):
       Given("any number")
       When("and'ed with 0")
       Then("result is 0 and zero flag is set")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, 0, 0xFFFF.toShort, AluOp.And) == (0, 0xFFFF.toShort))
+        a => assert(Alu(a, 0, 0xFFFF.toShort, AND) == (0, 0xFFFF.toShort))
 
     Scenario("bitwise Or"):
       Given("two different numbers")
@@ -183,13 +183,13 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("result is bitwise Or")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
         (a, b) => whenever(a!=0 || b!=0):
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Or) == ((a | b).toShort, 0xFFFE.toShort))
+          assert(Alu(a, b, 0xFFFF.toShort, OR) == ((a | b).toShort, 0xFFFE.toShort))
 
     Scenario("bitwise Or of two 0s"):
       Given("zero as both operands")
       When("or'ed")
       Then("result is 0 and zero flag is set")
-      assert(Alu(0, 0, 0xFFFF.toShort, AluOp.Or) == (0, 0xFFFF.toShort))
+      assert(Alu(0, 0, 0xFFFF.toShort, OR) == (0, 0xFFFF.toShort))
 
     Scenario("bitwise Xor"):
       Given("two different numbers")
@@ -197,14 +197,14 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("result is bitwise Xor")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
         (a, b) => whenever(a != b):
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Xor) == ((a ^ b).toShort, 0xFFFE.toShort))
+          assert(Alu(a, b, 0xFFFF.toShort, XOR) == ((a ^ b).toShort, 0xFFFE.toShort))
 
     Scenario("bitwise Xor or same numbers"):
       Given("any same numbers")
       When("xor'ed")
       Then("result is 0 and zero flag is set")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Xor) == (0, 0xFFFF.toShort))
+        a => assert(Alu(a, a, 0xFFFF.toShort, XOR) == (0, 0xFFFF.toShort))
 
     Scenario("compare different numbers"):
       Given("two different numbers")
@@ -212,14 +212,14 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       Then("zero flag is not set")
       forAll(TestUtils.anyValueGen, TestUtils.anyValueGen):
         (a, b) => whenever(a != b): 
-          assert(Alu(a, b, 0xFFFF.toShort, AluOp.Compare)._2 == 0xFFFE.toShort)
+          assert(Alu(a, b, 0xFFFF.toShort, CMP)._2 == 0xFFFE.toShort)
 
     Scenario("compare same numbers"):
       Given("two same numbers")
       When("compared")
       Then("zero flag is set")
       forAll(TestUtils.anyValueGen):
-        a => assert(Alu(a, a, 0xFFFF.toShort, AluOp.Compare)._2 == 0xFFFF.toShort)
+        a => assert(Alu(a, a, 0xFFFF.toShort, CMP)._2 == 0xFFFF.toShort)
 
   Feature("decode opcode"):
     Scenario("decode all opcodes"):

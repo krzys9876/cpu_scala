@@ -3,19 +3,20 @@ package org.kr.cpu
 sealed trait Opcode:
   def code: Int
   def isLegal: Boolean = true
+  def isAlu: Boolean = false
 
 case object LD extends Opcode {override val code:Int=0x0 }
 case object LDZ extends Opcode {override val code:Int=0x6 }
 case object LDNZ extends Opcode {override val code:Int=0x7 }
 
-case object ADD extends Opcode {override val code:Int=0x8 }
-case object SUB extends Opcode {override val code:Int=0x9 }
-case object INC extends Opcode {override val code: Int = 0xA}
-case object DEC extends Opcode {override val code: Int = 0xB}
-case object CMP extends Opcode {override val code:Int=0xC }
-case object AND extends Opcode {override val code:Int=0xD }
-case object OR extends Opcode {override val code:Int=0xE }
-case object XOR extends Opcode {override val code:Int=0xF }
+case object ADD extends Opcode {override val code:Int=0x8; override val isAlu:Boolean = true}
+case object SUB extends Opcode {override val code:Int=0x9; override val isAlu:Boolean = true}
+case object INC extends Opcode {override val code:Int=0xA; override val isAlu:Boolean = true}
+case object DEC extends Opcode {override val code:Int=0xB; override val isAlu:Boolean = true}
+case object CMP extends Opcode {override val code:Int=0xC; override val isAlu:Boolean = true}
+case object AND extends Opcode {override val code:Int=0xD; override val isAlu:Boolean = true}
+case object OR extends Opcode {override val code:Int=0xE; override val isAlu:Boolean = true}
+case object XOR extends Opcode {override val code:Int=0xF; override val isAlu:Boolean = true}
 
 case class OpcodeIllegal(override val code:Int) extends Opcode:
   override val isLegal: Boolean = false
