@@ -10,18 +10,6 @@ abstract class Parser[T] extends JavaTokenParsers:
       case Success(result, _) => Right(result)
       case failure: NoSuccess => Left(failure.msg)
 
-
-//trait CommonParser extends JavaTokenParsers
-  //def integerNumber: Parser[String] = """(\d+)""".r
-  //def hexNumber: Parser[String] = """(^0-9A-F$)""".r
-  //def anyText: Parser[String] = """(.*)""".r
-  //def anyTextQuoted: Parser[String] = stringLiteral ^^ { t => BaseParser.unEscapeBackslash(stripQuotes(t)) }
-  //def emptyString: Parser[String] = """(^$)""".r
-
-  //private def stripFirstAndLastChar(t: String): String = t.substring(1, t.length - 1)
-  //private def stripQuotes(t: String): String =
-  //  if (t.startsWith("\"") && t.endsWith("\"")) stripFirstAndLastChar(t) else t
-
 trait Operand:
   val num: Short
 
@@ -31,13 +19,10 @@ case class OpPort(override val num: Short) extends Operand
 
 
 trait InstructionParser extends Parser[Instruction]:
-  private def regText: Parser[String] = "(R[0-9|A-F]{1})".r
-  private def memText: Parser[String] = "(M[0-9|A-F]{1})".r
-  private def portText: Parser[String] = "(P[0-9|A-F]{1})".r
-  private def operandText: Parser[String] = "([R|M|P][0-9|A-F])".r
-  def reg: Parser[OpRegister] = regText ^^ { r => OpRegister(Integer.parseInt(r.substring(1),0x10).toShort)}
-  private def mem: Parser[OpMemory] = memText ^^ { m => OpMemory(Integer.parseInt(m.substring(1),0x10).toShort)}
-  private def port: Parser[OpPort] = portText ^^ { p => OpPort(Integer.parseInt(p.substring(1),0x10).toShort)}
+  private def operandPrefix = "[R|M|P]"
+  private def operandSuffix = "[0-9|A-F]"
+  //NOTE: string is interpolated only to avoid compiler warning about "|" doubled characters in string
+  private def operandText: Parser[String] = f"($operandPrefix$operandSuffix)".r
   private def operand: Parser[Operand] = operandText ^^ { op =>
     val num = Integer.parseInt(op.substring(1), 0x10).toShort
     op.charAt(0) match
