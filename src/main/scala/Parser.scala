@@ -36,16 +36,15 @@ trait InstructionParser extends Parser[Instruction]:
       "LD" ~> mem ~ reg ^^ { case m ~ r => INSTR_LD_MR(m, r) } |
       "LD" ~> reg ~ mem ^^ { case r ~ m => INSTR_LD_RM(r, m) }
 
+  private def JMP: Parser[Instruction] =
+    "JMP" ~> reg ^^ { r => INSTR_LD_RR(r,0) }
+
   private def OUT: Parser[Instruction] =
     "OUT" ~> reg ~ port ^^ { case r ~ p => INSTR_LD_RO(r,p) }
 
   private def IN: Parser[Instruction] =
     "IN" ~> reg ~ port ^^ { case r ~ p => INSTR_LD_RI(r,p) }
-
-  private def JMP: Parser[Instruction] =
-    "JMP" ~> reg ^^ { r => INSTR_LD_RR(r,0) } |
-      "JMP" ~> mem ^^ { m => INSTR_LD_MR(m, 0) }
-
+  
   def instruction: Parser[Instruction] = LD | JMP | OUT | IN
 
 class LineParser extends Parser[Instruction] with InstructionParser:
