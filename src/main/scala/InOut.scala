@@ -41,7 +41,7 @@ class InputPortVector(val data:Vector[Short], val default: Short = 0) extends In
   override def refresh: InputPort = new InputPortVector(data.tail, default)
   
 object InputPortVector:
-  def single(value: Short): InputPortVector = new InputPortVector(Vector(value))  
+  def single(value: Short): InputPortVector = new InputPortVector(Vector(value))
 
 class InputFile(val map: Map[Short, InputPort] = Map(), default: Short = 0):
   def read(port: Short): (Short, InputFile) =
