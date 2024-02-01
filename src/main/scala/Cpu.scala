@@ -34,6 +34,9 @@ case class Cpu(handler:CpuHandler, register:Register, memory:Memory, outputFile:
     steps match
       case 0 => this
       case _ => handleNext.handleNext(steps-1)
+  @tailrec
+  final def handleInfinitely:Cpu =
+    handleNext.handleInfinitely
 
 trait CpuHandler:
   def create: Cpu
