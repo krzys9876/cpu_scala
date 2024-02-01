@@ -262,4 +262,16 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       val outText = (0 to 9).foldLeft("")((t,v)=> t + cpuOutput.outputFile.files(0xB)(v).toChar)
       assert(outText == "ABCDEFGHIJ")
 
+    Scenario("input a value"):
+      Given("A cpu instance in reset state (all registers set to 0)")
+      val cpuInit = TestUtils.createResetCpu
+      When("a value is inputted")
+      Then("target register file contains proper value")
+      forAll(TestUtils.portGen,TestUtils.registerIndexGen, TestUtils.anyValueGen):
+        (port,reg, value) => whenever(reg>0)
+          val inputFileSet = cpuInit.inputFile.attachPort(port, InputPortVector.single(value))
+          val cpuWithInput = cpuInit.copy(inputFile = inputFileSet)
+          val cpuAfter = cpuWithInput.input(port, reg)
+          assert(cpuAfter.register(reg) == value)
+
 

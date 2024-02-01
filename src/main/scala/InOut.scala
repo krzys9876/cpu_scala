@@ -39,9 +39,17 @@ trait InputPort:
 class InputPortVector(val data:Vector[Short], val default: Short = 0) extends InputPort:
   override def read: Short = data.headOption.getOrElse(default)
   override def refresh: InputPort = new InputPortVector(data.tail, default)
+  
+object InputPortVector:
+  def single(value: Short): InputPortVector = new InputPortVector(Vector(value))  
 
-class InputFile(map: Map[Short, InputPort] = Map(), default: Short = 0):
+class InputFile(val map: Map[Short, InputPort] = Map(), default: Short = 0):
   def read(port: Short): (Short, InputFile) =
     map.get(port) match
       case None => (default, this)
       case Some(inputPort) => (inputPort.read, new InputFile(map + (port -> inputPort.refresh)))
+
+  def attachPort(port: Short, inPort: InputPort): InputFile = new InputFile(map ++ Map(port -> inPort))
+
+object InputFile:
+  def blank:InputFile= new InputFile(Map())

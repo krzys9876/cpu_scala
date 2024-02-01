@@ -2,7 +2,7 @@ package org.kr.cpu
 
 import scala.annotation.tailrec
 
-case class Cpu(handler:CpuHandler, register:Register, memory:Memory, outputFile:OutputFile):
+case class Cpu(handler:CpuHandler, register:Register, memory:Memory, outputFile:OutputFile, inputFile: InputFile):
   def reset: Cpu = handler.reset(this)
   // predefined registers
   def pc: Short = register(0)
@@ -25,7 +25,8 @@ case class Cpu(handler:CpuHandler, register:Register, memory:Memory, outputFile:
   def writeMemory(address:Int, value: Short): Cpu = handler.writeMemory(this, address,value)
   def writeMemoryMulti(address:Int, values: Vector[Short]): Cpu =
     values.indices.foldLeft(this)((cpu, offset)=>cpu.writeMemory(address+offset, values(offset)))
-  def output(port:Short, value: Short): Cpu = handler.output(this, port, value)  
+  def output(port:Short, value: Short): Cpu = handler.output(this, port, value)
+  def input(port:Short, reg: Short): Cpu = handler.input(this, port, reg)
   def handleNext:Cpu = handler.handle(this, Instruction(memory(pc)))
   @tailrec
   final def handleNext(steps:Long):Cpu =
@@ -41,13 +42,17 @@ trait CpuHandler:
   def writeMemory(cpu:Cpu, address: Int, value: Short): Cpu
   def handle(cpu:Cpu, instr:Instruction): Cpu
   def output(cpu:Cpu, port: Short, value: Short): Cpu
+  def input(cpu: Cpu, port: Short, reg: Short): Cpu
 
 object CpuHandlerImmutable extends CpuHandler:
-  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory, OutputFile.blank)
+  override def create: Cpu = Cpu(CpuHandlerImmutable, emptyRegs, emptyMemory, OutputFile.blank, InputFile.blank)
   override def reset(cpu: Cpu): Cpu = cpu.copy(register = emptyRegs)
   override def setReg(cpu: Cpu, index: Int, value: Short): Cpu = cpu.copy(register = cpu.register.set(index, value))
   override def writeMemory(cpu: Cpu, address: Int, value: Short): Cpu = cpu.copy(memory = cpu.memory.write(address,value))
   override def output(cpu: Cpu, port: Short, value: Short): Cpu = cpu.copy(outputFile = cpu.outputFile.write(port, value))
+  override def input(cpu: Cpu, port: Short, reg: Short): Cpu =
+    val readValue = cpu.inputFile.read(port)
+    cpu.setReg(reg, readValue._1).copy(inputFile = readValue._2)
 
   override def handle(cpu: Cpu, instr:Instruction): Cpu =
     (instr.opcode, cpu.flZ) match
