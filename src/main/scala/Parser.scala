@@ -76,16 +76,16 @@ trait InstructionParser extends Parser[Instruction]:
       case ("INNZ", r: OpRegister, p: OpPort) => INSTR_LDNZ_RI(r.num, p.num)
 
   private def LD: Parser[Instruction] =
-    ("LD" | "LDZ" | "LDNZ") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeLD(m,op1,op2) }
+    ("LDNZ" | "LDZ" | "LD") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeLD(m,op1,op2) }
 
   private def JMP: Parser[Instruction] =
-    ("JMP" | "JMPZ" | "JMPNZ") ~ operand ^^ { case m ~ o => decodeJMP(m,o) }
+    ("JMPNZ" | "JMPZ" | "JMP") ~ operand ^^ { case m ~ o => decodeJMP(m,o) }
 
   private def OUT: Parser[Instruction] =
-    ("OUT" | "OUTZ" | "OUTNZ") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeOUT(m, op1, op2) }
+    ("OUTNZ" | "OUTZ" | "OUT") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeOUT(m, op1, op2) }
 
   private def IN: Parser[Instruction] =
-    ("IN" | "INZ" | "INNZ") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeIN(m, op1, op2) }
+    ("INNZ" | "INZ" | "IN") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeIN(m, op1, op2) }
 
   def instruction: Parser[Instruction] = LD | JMP | OUT | IN
 
