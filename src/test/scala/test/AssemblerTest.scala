@@ -112,4 +112,53 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Parse incorrect 2-operand instruction with 3 operands"):
       TokenParser.mnemonic2list.foreach(m =>
         assert(AssemblerParser().process(f"$m AAA BBB CCC").isLeft))
+
+  Feature("ignore comments after instructions and commands"):
+    Scenario("ignore comment after label"):
+      val labelText = "someLabel:"
+      val expected = LabelLine(Label(labelText))
+      assert(AssemblerParser().process(f"$labelText # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f"$labelText#comment1 comment2").contains(expected))
+
+    Scenario("ignore comment after symbol"):
+      val symbol = "someSymbol"
+      val value = "someValue"
+      val expected = SymbolLine(Operand(symbol),Operand(value))
+      assert(AssemblerParser().process(f".SYMBOL $symbol $value # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".SYMBOL $symbol $value#comment1 comment2").contains(expected))
+
+    Scenario("ignore comment after origin"):
+      val address = "someAddress"
+      val expected = OrgLine(Operand(address))
+      assert(AssemblerParser().process(f".ORG $address # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".ORG $address#comment1 comment2").contains(expected))
+
+    Scenario("ignore comment after data"):
+      val data = "someData"
+      val expected = DataLine(Vector(Operand(data),Operand(data)))
+      assert(AssemblerParser().process(f".DATA $data $data # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".DATA $data $data#comment1 comment2").contains(expected))
+
+    Scenario("ignore comment in empty line"):
+      val expected = EmptyLine()
+      assert(AssemblerParser().process(f" # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f"#comment1 comment2").contains(expected))
+
+    Scenario("Ignore comment after 0-operand instruction"):
+      TokenParser.mnemonic0list.foreach(m =>
+        val expected = Instruction0Line(Mnemonic0(m))
+        assert(AssemblerParser().process(f"$m # comment1 comment2").contains(expected))
+        assert(AssemblerParser().process(f"$m#comment1 comment2").contains(expected)))
+
+    Scenario("Ignore comment after 1-operand instruction"):
+      TokenParser.mnemonic1list.foreach(m =>
+        val expected = Instruction1Line(Mnemonic1(m),Operand("AAA"))
+        assert(AssemblerParser().process(f"$m AAA # comment1 comment2").contains(expected))
+        assert(AssemblerParser().process(f"$m AAA#comment1 comment2").contains(expected)))
+
+    Scenario("Ignore comment after 2-operand instruction"):
+      TokenParser.mnemonic2list.foreach(m =>
+        val expected = Instruction2Line(Mnemonic2(m), Operand("AAA"), Operand("BBB"))
+        assert(AssemblerParser().process(f"$m AAA BBB # comment1 comment2").contains(expected))
+        assert(AssemblerParser().process(f"$m AAA BBB#comment1 comment2").contains(expected)))
 }

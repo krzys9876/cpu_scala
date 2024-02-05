@@ -38,13 +38,16 @@ trait TokenParser extends JavaTokenParsers:
   def operand: Parser[Operand] = anyIdentifierOrValue ^^ {t => Operand(t)}
 
 trait LineParser extends TokenParser:
-  def labelLine: Parser[LabelLine] = label ^^ {l => LabelLine(l)}
-  def dataLine: Parser[DataLine] = dataKeyword ~> rep1(operand) ^^ {v => DataLine(v.toVector)}
-  def symbolLine: Parser[SymbolLine] = symbolKeyword ~> operand ~ operand ^^ {case s ~ v => SymbolLine(s,v)}
-  def orgLine: Parser[OrgLine] = orgKeyword ~> operand ^^ {a => OrgLine(a)}
-  def instr0: Parser[Instruction0Line] = mnemonic0 ^^ {m => Instruction0Line(m)}
-  def instr1: Parser[Instruction1Line] = mnemonic1 ~ operand ^^ {case m ~ o => Instruction1Line(m, o)}
-  def instr2: Parser[Instruction2Line] = mnemonic2 ~ operand ~ operand ^^ {case m ~ o1 ~ o2 => Instruction2Line(m, o1, o2)}
+  private def comment: Parser[String] = """(#.*)""".r
+
+  def emptyLine: Parser[EmptyLine] = opt(comment) ^^ {_ => EmptyLine()}
+  def labelLine: Parser[LabelLine] = label <~ opt(comment) ^^ {l => LabelLine(l)}
+  def dataLine: Parser[DataLine] = dataKeyword ~> rep1(operand) <~ opt(comment) ^^ {v => DataLine(v.toVector)}
+  def symbolLine: Parser[SymbolLine] = symbolKeyword ~> operand ~ operand <~ opt(comment) ^^ {case s ~ v => SymbolLine(s,v)}
+  def orgLine: Parser[OrgLine] = orgKeyword ~> operand <~ opt(comment) ^^ {a => OrgLine(a)}
+  def instr0: Parser[Instruction0Line] = mnemonic0 <~ opt(comment) ^^ {m => Instruction0Line(m)}
+  def instr1: Parser[Instruction1Line] = mnemonic1 ~ operand <~ opt(comment) ^^ {case m ~ o => Instruction1Line(m, o)}
+  def instr2: Parser[Instruction2Line] = mnemonic2 ~ operand ~ operand <~ opt(comment) ^^ {case m ~ o1 ~ o2 => Instruction2Line(m, o1, o2)}
 
 sealed trait Token
 
@@ -59,6 +62,7 @@ case class Operand(name: String) extends Token
 
 sealed trait Line
 
+case class EmptyLine() extends Line
 case class LabelLine(label: Label) extends Line
 case class DataLine(value: Vector[Operand]) extends Line
 case class SymbolLine(symbol: Operand, value: Operand) extends Line
@@ -68,5 +72,5 @@ case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line
 case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line
 
 class AssemblerParser extends BaseParser[Line] with LineParser:
-  override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2
+  override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
