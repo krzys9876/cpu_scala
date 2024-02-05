@@ -20,6 +20,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Parse incorrect label line (w/o trailing colon)"):
       assert(AssemblerParser().process("adbc").isLeft)
       assert(AssemblerParser().process("12:g5").isLeft)
+      assert(AssemblerParser().process(":r63").isLeft)
 
     Scenario("Parse incorrect label line (with text after or before)"):
       assert(AssemblerParser().process("adbc: some_other_text").isLeft)
@@ -53,5 +54,20 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Parse incorrect origin line (wrong number of operands"):
       assert(AssemblerParser().process(f".ORG 1111 2222").isLeft)
       assert(AssemblerParser().process(f".ORG").isLeft)
+
+  Feature("Parse data line"):
+    Scenario("Parse correct data line with 1-3 values"):
+      forAll(TestUtils.textGen,TestUtils.textGen,TestUtils.textGen):
+        (d1, d2, d3) =>
+          assert(AssemblerParser().process(f".DATA $d1").contains(DataLine(Vector(Operand(d1)))))
+          assert(AssemblerParser().process(f".DATA $d1 $d2").contains(DataLine(Vector(Operand(d1),Operand(d2)))))
+          assert(AssemblerParser().process(f".DATA $d1 $d2 $d3").contains(DataLine(Vector(Operand(d1),Operand(d2),Operand(d3)))))
+
+    Scenario("Parse incorrect data line (wrong keyword"):
+      assert(AssemblerParser().process(f".DATAx 0x1234").isLeft)
+      assert(AssemblerParser().process(f"DATA 0x3245").isLeft)
+
+    Scenario("Parse incorrect data line (no operand"):
+      assert(AssemblerParser().process(f".DATA").isLeft)
 
 }

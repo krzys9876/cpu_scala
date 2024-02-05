@@ -32,7 +32,7 @@ trait TokenParser extends JavaTokenParsers:
 
 trait LineParser extends TokenParser:
   private def labelLine: Parser[LabelLine] = label ^^ {l => LabelLine(l)}
-  private def dataLine: Parser[DataLine] = dataKeyword ~> operand ^^ {v => DataLine(v)}
+  private def dataLine: Parser[DataLine] = dataKeyword ~> rep1(operand) ^^ {v => DataLine(v.toVector)}
   private def symbolLine: Parser[SymbolLine] = symbolKeyword ~> operand ~ operand ^^ {case s ~ v => SymbolLine(s,v)}
   private def orgLine: Parser[OrgLine] = orgKeyword ~> operand ^^ {a => OrgLine(a)}
   private def instr0: Parser[Instruction0Line] = mnemonic0 ^^ {m => Instruction0Line(m)}
@@ -55,7 +55,7 @@ case class Operand(name: String) extends Token
 sealed trait Line
 
 case class LabelLine(label: Label) extends Line
-case class DataLine(value: Operand) extends Line
+case class DataLine(value: Vector[Operand]) extends Line
 case class SymbolLine(symbol: Operand, value: Operand) extends Line
 case class OrgLine(address: Operand) extends Line
 case class Instruction0Line(mnemonic: Mnemonic0) extends Line
