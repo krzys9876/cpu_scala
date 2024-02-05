@@ -15,7 +15,7 @@ abstract class BaseParser[T] extends JavaTokenParsers:
 object TokenParser:
   val mnemonic0list: List[String] = List("NOP", "RET")
   val mnemonic1list: List[String] = List("LDAZ", "LDANZ", "LDA", "CALL", "JMPZ", "JMPNZ", "JMP", "INC", "DEC")
-  val mnemonic2list: List[String] = List("LDZ", "LDNZ", "LD", "ADD", "SUB", "AND", "OR", "CMP")
+  val mnemonic2list: List[String] = List("LDRZ", "LDRNZ", "LDR", "LDZ", "LDNZ", "LD", "ADD", "SUB", "AND", "OR", "CMP")
 
 trait TokenParser extends JavaTokenParsers:
   private def anyOf(elems:List[String]): Parser[String] =
