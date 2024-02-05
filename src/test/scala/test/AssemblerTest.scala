@@ -1,7 +1,7 @@
 package org.kr.cpu
 package test
 
-import assembler.{LabelLine, *}
+import assembler._
 import org.scalactic.anyvals.PosZInt
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -35,7 +35,23 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
       assert(AssemblerParser().process(f".SYMBOLxxx AAA BBB").isLeft)
       assert(AssemblerParser().process(f"SYMBOL AAA BBB").isLeft)
 
-    Scenario("Parse incorrect symbol line (one or none operand given"):
+    Scenario("Parse incorrect symbol line (wrong number of operands"):
+      assert(AssemblerParser().process(f".SYMBOL AAA BBB CCC").isLeft)
       assert(AssemblerParser().process(f".SYMBOL AAA").isLeft)
       assert(AssemblerParser().process(f"SYMBOL").isLeft)
+
+  Feature("Parse origin line"):
+    Scenario("Parse correct origin line with address or symbol"):
+      forAll(TestUtils.textGen):
+        o =>
+          assert(AssemblerParser().process(f".ORG $o").contains(OrgLine(Operand(o))))
+
+    Scenario("Parse incorrect origin line (wrong keyword"):
+      assert(AssemblerParser().process(f".ORIG 0x1234").isLeft)
+      assert(AssemblerParser().process(f"ORG 0x3245").isLeft)
+
+    Scenario("Parse incorrect origin line (wrong number of operands"):
+      assert(AssemblerParser().process(f".ORG 1111 2222").isLeft)
+      assert(AssemblerParser().process(f".ORG").isLeft)
+
 }
