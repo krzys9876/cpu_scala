@@ -139,7 +139,8 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
       When("added")
       Then("result is sum trimmed to 16b and flags are off")
       forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu(a, (-b).toShort, 0xFF00.toShort, ADD) == ((a - b).toShort, 0xFF00.toShort))
+        (a, b) => whenever(a != b) // ensure zero flag not set
+          assert(Alu(a, (-b).toShort, 0xFF00.toShort, ADD) == ((a - b).toShort, 0xFF00.toShort))
 
     Scenario("express Sub as Add with second operand negated"):
       Given("two different numbers")
