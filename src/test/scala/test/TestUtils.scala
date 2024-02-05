@@ -13,6 +13,7 @@ object TestUtils:
   val registerIndexGen: Gen[Short] = Gen.choose(0.toShort, 15.toShort)
   val portGen: Gen[Short] = Gen.choose(0.toShort, 15.toShort)
   val addressGen: Gen[Int] = Gen.choose(0, 0xFFFF)
+  val textGen: Gen[String] = Gen.identifier
 
   val testCpuHandler:CpuHandler = CpuHandlerImmutable
 
