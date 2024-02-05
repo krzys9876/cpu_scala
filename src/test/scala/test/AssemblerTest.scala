@@ -70,4 +70,46 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Parse incorrect data line (no operand"):
       assert(AssemblerParser().process(f".DATA").isLeft)
 
+  Feature("Parse 0-operand instruction"):
+    Scenario("Parse correct 0-operand instruction"):
+      TokenParser.mnemonic0list.foreach(m =>
+        assert(AssemblerParser().process(f"$m").contains(Instruction0Line(Mnemonic0(m)))))
+
+  Scenario("Parse incorrect 0-operand instruction with operand"):
+    TokenParser.mnemonic0list.foreach(m =>
+      assert(AssemblerParser().process(f"$m AAA").isLeft))
+
+  Feature("Parse 1-operand instruction"):
+    Scenario("Parse correct 1-operand instruction"):
+      forAll(TestUtils.textGen):
+        op =>
+          TokenParser.mnemonic1list.foreach(m =>
+            assert(AssemblerParser().process(f"$m $op").contains(Instruction1Line(Mnemonic1(m),Operand(op)))))
+
+    Scenario("Parse incorrect 1-operand instruction without operand"):
+      TokenParser.mnemonic1list.foreach(m =>
+        assert(AssemblerParser().process(f"$m").isLeft))
+
+    Scenario("Parse incorrect 1-operand instruction with 2 operands"):
+      TokenParser.mnemonic1list.foreach(m =>
+        assert(AssemblerParser().process(f"$m AAA BBB").isLeft))
+
+  Feature("Parse 2-operand instruction"):
+    Scenario("Parse 2-operand instruction"):
+      forAll(TestUtils.textGen, TestUtils.textGen):
+        (op1, op2) =>
+          TokenParser.mnemonic2list.foreach(m =>
+            assert(AssemblerParser().process(f"$m $op1 $op2").contains(Instruction2Line(Mnemonic2(m),Operand(op1),Operand(op2)))))
+
+    Scenario("Parse incorrect 2-operand instruction without operand"):
+      TokenParser.mnemonic2list.foreach(m =>
+        assert(AssemblerParser().process(f"$m").isLeft))
+
+    Scenario("Parse incorrect 2-operand instruction with 1 operand"):
+      TokenParser.mnemonic2list.foreach(m =>
+        assert(AssemblerParser().process(f"$m AAA").isLeft))
+
+    Scenario("Parse incorrect 2-operand instruction with 3 operands"):
+      TokenParser.mnemonic2list.foreach(m =>
+        assert(AssemblerParser().process(f"$m AAA BBB CCC").isLeft))
 }
