@@ -6,7 +6,7 @@ import org.scalactic.anyvals.PosZInt
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
+class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
 
@@ -162,4 +162,4 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
         val expected = Instruction2Line(Mnemonic2(m), Operand("AAA"), Operand("BBB"))
         assert(AssemblerParser().process(f"$m AAA, BBB # comment1 comment2").contains(expected))
         assert(AssemblerParser().process(f"$m AAA, BBB#comment1 comment2").contains(expected)))
-}
+      
