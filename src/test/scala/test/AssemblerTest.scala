@@ -30,11 +30,12 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Parse correct symbol name and value"):
       forAll(TestUtils.textGen, TestUtils.textGen):
         (s, v) =>
-          assert(AssemblerParser().process(f".SYMBOL $s $v").contains(SymbolLine(Operand(s),Operand(v))))
+          assert(AssemblerParser().process(f".SYMBOL $s=$v").contains(SymbolLine(Operand(s),Operand(v))))
 
-    Scenario("Parse incorrect symbol line (wrong keyword"):
-      assert(AssemblerParser().process(f".SYMBOLxxx AAA BBB").isLeft)
-      assert(AssemblerParser().process(f"SYMBOL AAA BBB").isLeft)
+    Scenario("Parse incorrect symbol line (wrong keyword or equals sign"):
+      assert(AssemblerParser().process(f".SYMBOLxxx AAA = BBB").isLeft)
+      assert(AssemblerParser().process(f".SYMBOL AAA BBB").isLeft)
+      assert(AssemblerParser().process(f"SYMBOL AAA=BBB").isLeft)
 
     Scenario("Parse incorrect symbol line (wrong number of operands"):
       assert(AssemblerParser().process(f".SYMBOL AAA BBB CCC").isLeft)
@@ -60,8 +61,8 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
       forAll(TestUtils.textGen,TestUtils.textGen,TestUtils.textGen):
         (d1, d2, d3) =>
           assert(AssemblerParser().process(f".DATA $d1").contains(DataLine(Vector(Operand(d1)))))
-          assert(AssemblerParser().process(f".DATA $d1 $d2").contains(DataLine(Vector(Operand(d1),Operand(d2)))))
-          assert(AssemblerParser().process(f".DATA $d1 $d2 $d3").contains(DataLine(Vector(Operand(d1),Operand(d2),Operand(d3)))))
+          assert(AssemblerParser().process(f".DATA $d1, $d2").contains(DataLine(Vector(Operand(d1),Operand(d2)))))
+          assert(AssemblerParser().process(f".DATA $d1, $d2 , $d3").contains(DataLine(Vector(Operand(d1),Operand(d2),Operand(d3)))))
 
     Scenario("Parse incorrect data line (wrong keyword"):
       assert(AssemblerParser().process(f".DATAx 0x1234").isLeft)
@@ -99,7 +100,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
       forAll(TestUtils.textGen, TestUtils.textGen):
         (op1, op2) =>
           TokenParser.mnemonic2list.foreach(m =>
-            assert(AssemblerParser().process(f"$m $op1 $op2").contains(Instruction2Line(Mnemonic2(m),Operand(op1),Operand(op2)))))
+            assert(AssemblerParser().process(f"$m $op1, $op2").contains(Instruction2Line(Mnemonic2(m),Operand(op1),Operand(op2)))))
 
     Scenario("Parse incorrect 2-operand instruction without operand"):
       TokenParser.mnemonic2list.foreach(m =>
@@ -124,8 +125,8 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
       val symbol = "someSymbol"
       val value = "someValue"
       val expected = SymbolLine(Operand(symbol),Operand(value))
-      assert(AssemblerParser().process(f".SYMBOL $symbol $value # comment1 comment2").contains(expected))
-      assert(AssemblerParser().process(f".SYMBOL $symbol $value#comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".SYMBOL $symbol=$value # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".SYMBOL $symbol=$value#comment1 comment2").contains(expected))
 
     Scenario("ignore comment after origin"):
       val address = "someAddress"
@@ -136,8 +137,8 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("ignore comment after data"):
       val data = "someData"
       val expected = DataLine(Vector(Operand(data),Operand(data)))
-      assert(AssemblerParser().process(f".DATA $data $data # comment1 comment2").contains(expected))
-      assert(AssemblerParser().process(f".DATA $data $data#comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".DATA $data, $data # comment1 comment2").contains(expected))
+      assert(AssemblerParser().process(f".DATA $data, $data#comment1 comment2").contains(expected))
 
     Scenario("ignore comment in empty line"):
       val expected = EmptyLine()
@@ -159,6 +160,6 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks {
     Scenario("Ignore comment after 2-operand instruction"):
       TokenParser.mnemonic2list.foreach(m =>
         val expected = Instruction2Line(Mnemonic2(m), Operand("AAA"), Operand("BBB"))
-        assert(AssemblerParser().process(f"$m AAA BBB # comment1 comment2").contains(expected))
-        assert(AssemblerParser().process(f"$m AAA BBB#comment1 comment2").contains(expected)))
+        assert(AssemblerParser().process(f"$m AAA, BBB # comment1 comment2").contains(expected))
+        assert(AssemblerParser().process(f"$m AAA, BBB#comment1 comment2").contains(expected)))
 }

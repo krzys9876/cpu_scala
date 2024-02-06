@@ -39,15 +39,16 @@ trait TokenParser extends JavaTokenParsers:
 
 trait LineParser extends TokenParser:
   private def comment: Parser[String] = """(#.*)""".r
+  private def sep: String = ","
 
   def emptyLine: Parser[EmptyLine] = opt(comment) ^^ {_ => EmptyLine()}
   def labelLine: Parser[LabelLine] = label <~ opt(comment) ^^ {l => LabelLine(l)}
-  def dataLine: Parser[DataLine] = dataKeyword ~> rep1(operand) <~ opt(comment) ^^ {v => DataLine(v.toVector)}
-  def symbolLine: Parser[SymbolLine] = symbolKeyword ~> operand ~ operand <~ opt(comment) ^^ {case s ~ v => SymbolLine(s,v)}
+  def dataLine: Parser[DataLine] = dataKeyword ~> rep1sep(operand,sep) <~ opt(comment) ^^ {v => DataLine(v.toVector)}
+  def symbolLine: Parser[SymbolLine] = symbolKeyword ~> operand ~ "=" ~ operand <~ opt(comment) ^^ {case s ~ _ ~ v => SymbolLine(s,v)}
   def orgLine: Parser[OrgLine] = orgKeyword ~> operand <~ opt(comment) ^^ {a => OrgLine(a)}
   def instr0: Parser[Instruction0Line] = mnemonic0 <~ opt(comment) ^^ {m => Instruction0Line(m)}
   def instr1: Parser[Instruction1Line] = mnemonic1 ~ operand <~ opt(comment) ^^ {case m ~ o => Instruction1Line(m, o)}
-  def instr2: Parser[Instruction2Line] = mnemonic2 ~ operand ~ operand <~ opt(comment) ^^ {case m ~ o1 ~ o2 => Instruction2Line(m, o1, o2)}
+  def instr2: Parser[Instruction2Line] = mnemonic2 ~ operand ~ sep ~ operand <~ opt(comment) ^^ {case m ~ o1 ~ _ ~ o2 => Instruction2Line(m, o1, o2)}
 
 sealed trait Token
 
