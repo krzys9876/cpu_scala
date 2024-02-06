@@ -34,7 +34,7 @@ trait TokenParser extends JavaTokenParsers:
   def mnemonic2: Parser[Mnemonic2] = mnemonic2name ^^ { n => Mnemonic2(n) }
   private def labelName: Parser[String] = """([a-zA-Z][a-zA-Z0-9_]*:)""".r
   def label: Parser[Label] = labelName ^^ {l => Label(l)}
-  private def anyIdentifierOrValue: Parser[String] = """([a-zA-Z][a-zA-Z0-9_]*)""".r
+  private def anyIdentifierOrValue: Parser[String] = """([a-zA-Z0-9_:]+)""".r
   def operand: Parser[Operand] = anyIdentifierOrValue ^^ {t => Operand(t)}
 
 trait LineParser extends TokenParser:

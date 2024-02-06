@@ -1,12 +1,14 @@
 package org.kr.cpu
 package test
 
-import assembler._
+import assembler.*
+
 import org.scalactic.anyvals.PosZInt
+import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks:
+class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with GivenWhenThen:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
 
@@ -162,4 +164,26 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks:
         val expected = Instruction2Line(Mnemonic2(m), Operand("AAA"), Operand("BBB"))
         assert(AssemblerParser().process(f"$m AAA, BBB # comment1 comment2").contains(expected))
         assert(AssemblerParser().process(f"$m AAA, BBB#comment1 comment2").contains(expected)))
-      
+
+  Feature("Replace symbols with their values"):
+    Scenario("Replace symbols in a program"):
+      Given("a program")
+      val prog = """
+          |.ORG 0x0000
+          |.SYMBOL V1=0x000F
+          |.SYMBOL V2=0x0010
+          |START:
+          |LDR R5,V1
+          |LDR R6,V2
+          |CMP R5,R6
+          |JMPZ END:
+          |LDA 0x0000
+          |LD R3,P0
+          |END:
+          |LDA 0x0001
+          |LD R3,P1
+          |""".stripMargin.split('\n').toVector
+      When("parsed")
+      val progParsed = prog.map(AssemblerParser().process(_))
+      Then("each line is parsed")
+      assert(progParsed.forall(_.isRight))
