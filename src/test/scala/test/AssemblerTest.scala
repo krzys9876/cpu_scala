@@ -236,3 +236,12 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       Then("all symbols are correctly replaced")
       assert(!assembler.isValid)
       assert(assembler.withSymbolsReplaced.isLeft)
+
+    Scenario("Do not replace when there is circular reference"):
+      Given("a program with circular reference")
+      val circularSymbolProgram = ".SYMBOL V1 = V2\n.SYMBOL V2 = V1"
+      When("processed")
+      val assembler = Assembler(circularSymbolProgram)
+      Then("all symbols are correctly replaced")
+      assert(!assembler.isValid)
+      assert(assembler.withSymbolsReplaced.isLeft)
