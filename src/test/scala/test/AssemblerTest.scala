@@ -176,7 +176,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
           |LDR R5,V1
           |LDR R6,V2
           |CMP R5,R6
-          |JMPZ END:
+          |JMPIZ END:
           |LDA 0x0000
           |LD R3,P0
           |END:

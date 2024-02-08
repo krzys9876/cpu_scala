@@ -13,8 +13,8 @@ abstract class BaseParser[T] extends JavaTokenParsers:
       case failure: NoSuccess => Left(failure.msg)
 
 object TokenParser:
-  val mnemonic0list: List[String] = List("NOP", "RET")
-  val mnemonic1list: List[String] = List("LDAZ", "LDANZ", "LDA", "CALL", "JMPZ", "JMPNZ", "JMP", "INC", "DEC")
+  val mnemonic0list: List[String] = List("NOP", "RET", "JMPAZ", "JMPANZ", "JMPA")
+  val mnemonic1list: List[String] = List("LDAZ", "LDANZ", "LDA", "CALL", "JMPIZ", "JMPINZ", "JMPI", "INC", "DEC")
   val mnemonic2list: List[String] = List("LDRZ", "LDRNZ", "LDR", "LDZ", "LDNZ", "LD", "ADD", "SUB", "AND", "OR", "CMP")
 
 trait TokenParser extends JavaTokenParsers:
