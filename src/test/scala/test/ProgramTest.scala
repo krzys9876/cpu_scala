@@ -5,7 +5,7 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 
 class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
-  Feature("Call and return (work in progress"):
+  Feature("Call and return"):
     Scenario("Call a subroutine and return to correct address"):
       Given("a program in memory with call and return")
       val cpuInit = TestUtils.createResetCpu
@@ -80,9 +80,8 @@ class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
         .writeMemoryMulti(0x0003, MACRO.LD_R(0x0000, 0xB)) // incremented variable
         // loop
         .writeMemory(0x0004, INSTR_INC(0xB).value) // increment variable
-        .writeMemoryMulti(0x0005, MACRO.LD_A(0x0004)) // jump address
-        .writeMemory(0x0007, INSTR_DEC(0xA).value) // decrement counter
-        .writeMemory(0x0008, INSTR_JMPNZ_A().value) // jump if not zero
+        .writeMemory(0x0005, INSTR_DEC(0xA).value) // decrement counter
+        .writeMemoryMulti(0x0006, MACRO.JMPINZ(0x0004)) // jump to address
         // end loop
         .writeMemoryMulti(0x0009, MACRO.LD_R(0x0C0C, 0xC))
         // END

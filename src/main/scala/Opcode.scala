@@ -80,6 +80,7 @@ case class INSTR_LD_RI(r: Short, p: Short) extends Instruction((LD.code | (INPUT
 case class INSTR_LDZ_AL(imm:Short) extends Instruction(INSTR_LD_AL(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_AH(imm:Short) extends Instruction(INSTR_LD_AH(imm).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RR(r1:Short,r2:Short) extends Instruction(INSTR_LD_RR(r1,r2).valueWithOpcode(LDZ))
+case class INSTR_JMPZ_A() extends Instruction(INSTR_JMP_A().valueWithOpcode(LDZ)) // helper instruction for LDZ A => PC
 case class INSTR_LDZ_MR(r:Short,a:Short) extends Instruction(INSTR_LD_MR(r,a).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).valueWithOpcode(LDZ))
 case class INSTR_LDZ_RO(r: Short, p: Short) extends Instruction(INSTR_LD_RO(r,p).valueWithOpcode(LDZ))
@@ -123,3 +124,9 @@ object MACRO:
       Vector(INSTR_LD_RM(3, 1).value) ++ // LD A => (SP) - push return address to stack
       MACRO.LD_A(callAddress) ++ // call address
       Vector(INSTR_JMP_A().value) // LD A => PC - jump to subroutine
+  def JMPI(targetAddress: Short): Vector[Short] = // 3 steps
+    LD_A(targetAddress) ++ Vector(INSTR_JMP_A().value)
+  def JMPIZ(targetAddress: Short): Vector[Short] = // 3 steps
+    LD_A(targetAddress) ++ Vector(INSTR_JMPZ_A().value)
+  def JMPINZ(targetAddress: Short): Vector[Short] = // 3 steps
+    LD_A(targetAddress) ++ Vector(INSTR_JMPNZ_A().value)
