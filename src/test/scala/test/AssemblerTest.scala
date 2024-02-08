@@ -167,7 +167,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
 
   private val program =
     """
-      |.ORG 0x0000
+      |.ORG 0x0010
       |.SYMBOL V1=0x000F
       |.SYMBOL V2=0x0010
       |.SYMBOL V3=V2 # not used
@@ -245,3 +245,14 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       Then("all symbols are correctly replaced")
       assert(!assembler.isValid)
       assert(assembler.withSymbolsReplaced.isLeft)
+      
+  Feature("calculate addresses for lines"):
+    Scenario("calculate addresses for non-overlapping program"):
+      Given("a program")
+      When("processed")
+      val assembler = Assembler(program)
+      Then("addresses are calculated properly")
+      assert(assembler.withAddress.isRight)
+      val addressed = assembler.withAddress.getOrElse(Vector())
+      // NOTE: all lines with assembler keywords or labels do not affect address
+      assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
