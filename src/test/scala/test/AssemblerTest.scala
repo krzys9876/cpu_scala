@@ -173,7 +173,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       |.SYMBOL V3=V2 # not used
       |START:
       |LDR R5,V1
-      |LDR R6,V2
+      |LDR R6,V3
       |CMP R5,R6
       |JMPIZ END
       |LDA 0x0000
@@ -191,6 +191,20 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       Then("each line is parsed")
       assert(progParsed.forall(_.isRight))
 
+  private val symbolProgram =
+    """
+      |.SYMBOL V1=0x0001
+      |.SYMBOL V2=V1
+      |.SYMBOL V3=V2
+      |.SYMBOL V4=V3
+      |.SYMBOL V5=V4
+      |.SYMBOL V6=V5
+      |.SYMBOL V7=V6
+      |.SYMBOL V8=V7
+      |.SYMBOL V9=V8
+      |.SYMBOL VA=V9
+      |""".stripMargin
+
   Feature("Replace symbols with their values"):
     Scenario("Replace symbols"):
       Given("a program")
@@ -201,3 +215,24 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.symbols.get(Operand("V1")).contains(Operand("0x000F")))
       assert(assembler.symbols.get(Operand("V2")).contains(Operand("0x0010")))
       assert(assembler.symbols.get(Operand("V3")).contains(Operand("V2")))
+      val replaced = assembler.withSymbolsReplaced.getOrElse(Vector())
+      assert(replaced(3)==SymbolLine(Operand("V3"),Operand("0x0010")))
+      assert(replaced(5)==Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
+      assert(replaced(6)==Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
+    
+    Scenario("Replace nested symbols"):
+      Given("a program with many nested levels of symbols")
+      When("processed")
+      val assembler = Assembler(symbolProgram)
+      Then("all symbols are correctly replaced")
+      val replaced = assembler.withSymbolsReplaced.getOrElse(Vector())
+      assert(replaced(9)==SymbolLine(Operand("VA"),Operand("0x0001")))
+
+    Scenario("Do not replace when there are too many levels of nested symbols"):
+      Given("a program with too many nested levels of symbols")
+      When("processed")
+      // add another level
+      val assembler = Assembler(symbolProgram+"\n.SYMBOL VB=VA")
+      Then("all symbols are correctly replaced")
+      assert(!assembler.isValid)
+      assert(assembler.withSymbolsReplaced.isLeft)

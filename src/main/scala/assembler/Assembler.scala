@@ -2,6 +2,7 @@ package org.kr.cpu
 
 package assembler
 
+import scala.annotation.tailrec
 import scala.util.parsing.combinator.JavaTokenParsers
 
 abstract class BaseParser[T] extends JavaTokenParsers:
@@ -60,21 +61,45 @@ case class Mnemonic0(name: String) extends Token
 case class Mnemonic1(name: String) extends Token
 case class Mnemonic2(name: String) extends Token
 case class Operand(name: String) extends Token:
-  def replaceIfMatches(symbol: Operand, value: Operand): Operand = if(this.name==symbol.name) value else this
+  def replace(map: Map[Operand, Operand]): Operand = map.getOrElse(this,this)
 
 sealed trait Line:
   val operands: Vector[Operand] = Vector()
-  
+  def replaceSymbols(map: Map[Operand, Operand]): Line = this
+  def hasSymbols(map: Map[Operand, Operand]): Boolean = false
+
 case class EmptyLine() extends Line
 case class LabelLine(label: Label) extends Line
-case class DataLine(value: Vector[Operand]) extends Line {override val operands: Vector[Operand] = value}
-case class SymbolLine(symbol: Operand, value: Operand) extends Line
-case class OrgLine(address: Operand) extends Line {override val operands: Vector[Operand] = Vector(address)}
+
+case class DataLine(value: Vector[Operand]) extends Line:
+  override val operands: Vector[Operand] = value
+  override def replaceSymbols(map: Map[Operand, Operand]): Line =
+    copy(value = value.map(_.replace(map)))
+  override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))    
+
+case class SymbolLine(symbol: Operand, value: Operand) extends Line:
+  override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(value = value.replace(map))
+  override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == value)
+
+case class OrgLine(address: Operand) extends Line:
+  override val operands: Vector[Operand] = Vector(address)
+  override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(address = address.replace(map))
+  override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == address)
+
 case class Instruction0Line(mnemonic: Mnemonic0) extends Line
-case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) 
-  extends Line {override val operands: Vector[Operand] = Vector(oper)}
-case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) 
-  extends Line {override val operands: Vector[Operand] = Vector(oper1, oper2)}
+
+case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
+  override val operands: Vector[Operand] = Vector(oper)
+  override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(oper = oper.replace(map))
+  override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == oper)
+
+case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
+  override val operands: Vector[Operand] = Vector(oper1, oper2)
+  override def replaceSymbols(map: Map[Operand, Operand]): Line = 
+    copy(oper1 = oper1.replace(map), oper2 = oper2.replace(map))
+  override def hasSymbols(map: Map[Operand, Operand]): Boolean = 
+    map.keys.exists(k => k == oper1 || k == oper2)
+
 
 object Line:
   def isEmpty(line: Line): Boolean = line match
@@ -89,14 +114,36 @@ object Line:
     case l: SymbolLine => Some(l)
     case _ => None
 
+  @tailrec
+  def replaceSymbols(line: Line, map: Map[Operand, Operand], level: Int = 10): Either[String, Line] =
+    level match
+      case 0 => Left("too many nested symbols or circular reference")
+      case _ => 
+        if !line.hasSymbols(map) then Right(line) 
+        else replaceSymbols(line.replaceSymbols(map), map, level - 1)
+
 class AssemblerParser extends BaseParser[Line] with LineParser:
   override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
 case class Assembler(input: String):
-  private lazy val inputLines = input.split("\n").toVector.map(AssemblerParser().process)
-  lazy val isValid: Boolean = inputLines.forall(_.isRight)
-  private lazy val nonEmptyLines = inputLines.map(_.getOrElse(EmptyLine())).filterNot(Line.isEmpty)
+  private lazy val inputLines: Either[String,Vector[Line]] = 
+    val parsed = input.split("\n").toVector.map(AssemblerParser().process)
+    Assembler.reduce(parsed)  
+
+  private lazy val nonEmptyLines = inputLines.map(_.filterNot(Line.isEmpty)).getOrElse(Vector())
   lazy val symbols: Map[Operand, Operand] = nonEmptyLines.flatMap(Line.symbolOption)
     .map(s => s.symbol -> s.value).toMap
-  
-  
+  lazy val withSymbolsReplaced: Either[String, Vector[Line]] = 
+    val replaced = nonEmptyLines.map(Line.replaceSymbols(_,symbols))
+    Assembler.reduce(replaced)
+
+  lazy val isValid: Boolean = inputLines.isRight && withSymbolsReplaced.isRight
+
+object Assembler:
+  def reduce[T](in: Vector[Either[String,T]]): Either[String, Vector[T]] = in
+    .foldLeft(Right(Vector[T]()).withLeft[String])((list, elem) => (list, elem) match
+      case (Right(l), Right(e)) => Right(l :+ e)
+      case (Right(_), Left(error)) => Left(error)
+      case (Left(error), Right(_)) => Left(error)
+      case (Left(error), Left(lnError)) => Left(f"$error\n$lnError"))
+    
