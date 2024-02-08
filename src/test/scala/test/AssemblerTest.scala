@@ -165,25 +165,39 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
         assert(AssemblerParser().process(f"$m AAA, BBB # comment1 comment2").contains(expected))
         assert(AssemblerParser().process(f"$m AAA, BBB#comment1 comment2").contains(expected)))
 
-  Feature("Replace symbols with their values"):
-    Scenario("Replace symbols in a program"):
+  private val program =
+    """
+      |.ORG 0x0000
+      |.SYMBOL V1=0x000F
+      |.SYMBOL V2=0x0010
+      |.SYMBOL V3=V2 # not used
+      |START:
+      |LDR R5,V1
+      |LDR R6,V2
+      |CMP R5,R6
+      |JMPIZ END
+      |LDA 0x0000
+      |LD R3,P0
+      |END:
+      |LDA 0x0001
+      |LD R3,P1
+      |""".stripMargin 
+  
+  Feature("Parse a program"):
+    Scenario("Parse a program"):
       Given("a program")
-      val prog = """
-          |.ORG 0x0000
-          |.SYMBOL V1=0x000F
-          |.SYMBOL V2=0x0010
-          |START:
-          |LDR R5,V1
-          |LDR R6,V2
-          |CMP R5,R6
-          |JMPIZ END:
-          |LDA 0x0000
-          |LD R3,P0
-          |END:
-          |LDA 0x0001
-          |LD R3,P1
-          |""".stripMargin.split('\n').toVector
       When("parsed")
-      val progParsed = prog.map(AssemblerParser().process(_))
+      val progParsed = program.split('\n').toVector.map(AssemblerParser().process)
       Then("each line is parsed")
       assert(progParsed.forall(_.isRight))
+
+  Feature("Replace symbols with their values"):
+    Scenario("Replace symbols"):
+      Given("a program")
+      When("processed")
+      val assembler = Assembler(program)
+      Then("the progam is valid")
+      assert(assembler.isValid)
+      assert(assembler.symbols.get(Operand("V1")).contains(Operand("0x000F")))
+      assert(assembler.symbols.get(Operand("V2")).contains(Operand("0x0010")))
+      assert(assembler.symbols.get(Operand("V3")).contains(Operand("V2")))

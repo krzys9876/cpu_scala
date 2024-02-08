@@ -59,19 +59,44 @@ case class OrgKeyword() extends Token
 case class Mnemonic0(name: String) extends Token
 case class Mnemonic1(name: String) extends Token
 case class Mnemonic2(name: String) extends Token
-case class Operand(name: String) extends Token
+case class Operand(name: String) extends Token:
+  def replaceIfMatches(symbol: Operand, value: Operand): Operand = if(this.name==symbol.name) value else this
 
-sealed trait Line
-
+sealed trait Line:
+  val operands: Vector[Operand] = Vector()
+  
 case class EmptyLine() extends Line
 case class LabelLine(label: Label) extends Line
-case class DataLine(value: Vector[Operand]) extends Line
+case class DataLine(value: Vector[Operand]) extends Line {override val operands: Vector[Operand] = value}
 case class SymbolLine(symbol: Operand, value: Operand) extends Line
-case class OrgLine(address: Operand) extends Line
+case class OrgLine(address: Operand) extends Line {override val operands: Vector[Operand] = Vector(address)}
 case class Instruction0Line(mnemonic: Mnemonic0) extends Line
-case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line
-case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line
+case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) 
+  extends Line {override val operands: Vector[Operand] = Vector(oper)}
+case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) 
+  extends Line {override val operands: Vector[Operand] = Vector(oper1, oper2)}
+
+object Line:
+  def isEmpty(line: Line): Boolean = line match
+    case _: EmptyLine => true
+    case _ => false
+
+  def isSymbol(line: Line): Boolean = line match
+    case _: SymbolLine => true
+    case _ => false
+    
+  def symbolOption(line: Line): Option[SymbolLine] = line match
+    case l: SymbolLine => Some(l)
+    case _ => None
 
 class AssemblerParser extends BaseParser[Line] with LineParser:
   override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
+case class Assembler(input: String):
+  private lazy val inputLines = input.split("\n").toVector.map(AssemblerParser().process)
+  lazy val isValid: Boolean = inputLines.forall(_.isRight)
+  private lazy val nonEmptyLines = inputLines.map(_.getOrElse(EmptyLine())).filterNot(Line.isEmpty)
+  lazy val symbols: Map[Operand, Operand] = nonEmptyLines.flatMap(Line.symbolOption)
+    .map(s => s.symbol -> s.value).toMap
+  
+  
