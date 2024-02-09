@@ -263,7 +263,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val dataProgram = ".ORG 0x0010\n.DATA 0x0101,0x0102,0x0103"
       When("processed")
       val assembler = Assembler(dataProgram)
-      Then("macros are converted to series of instructions")
+      Then("data list is converted to series of single lines")
       val instructions = assembler.instructions
       assert(instructions.size==4)
       assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
