@@ -288,8 +288,35 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val assembler = Assembler(ldaProgram)
       Then("macros are converted to series of instructions")
       val instructions = assembler.instructions
-      println(instructions.mkString("\n"))
       assert(instructions(1).line == Instruction1Line(Mnemonic1("LDAL"), Operand("0x34")))
       assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAH"), Operand("0x12")))
       assert(instructions(1).address == 0x0010)
       assert(instructions(2).address == 0x0011)
+
+    Scenario("expand LDR"):
+      Given("a program with macro")
+      val ldrProgram = ".ORG 0x0010\nLDRNZ R8, 0x2345"
+      When("processed")
+      val assembler = Assembler(ldrProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.instructions
+      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDALNZ"), Operand("0x45")))
+      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAHNZ"), Operand("0x23")))
+      assert(instructions(3).line == Instruction2Line(Mnemonic2("LDNZ"), Operand("R3"), Operand("R8")))
+      assert(instructions(1).address == 0x0010)
+      assert(instructions(2).address == 0x0011)
+      assert(instructions(3).address == 0x0012)
+
+    Scenario("expand JMPI"):
+      Given("a program with macro")
+      val ldrProgram = ".ORG 0x0010\nJMPIZ 0x4567"
+      When("processed")
+      val assembler = Assembler(ldrProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.instructions
+      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDALZ"), Operand("0x67")))
+      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAHZ"), Operand("0x45")))
+      assert(instructions(3).line == Instruction1Line(Mnemonic1("JMPZ"), Operand("R3")))
+      assert(instructions(1).address == 0x0010)
+      assert(instructions(2).address == 0x0011)
+      assert(instructions(3).address == 0x0012)      

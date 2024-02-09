@@ -263,10 +263,38 @@ object Assembler:
           AtomicLine(line.address + 1, Instruction1Line(Mnemonic1(mnemonicH), Operand(f"0x$valueH%02X")), line))
       case _ => expandDefault(line)
 
+  def expandLDR(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction2Line(Mnemonic2(m), reg, v) =>
+        // TODO: probably this whole function should be converted to Either
+        val (mnemonicA, mnemonicR) = m match
+          case "LDR" => ("LDA", "LD")
+          case "LDRZ" => ("LDAZ", "LDZ")
+          case "LDRNZ" => ("LDANZ", "LDNZ")
+        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+  
+        AtomicLine(line.address+2, Instruction2Line(Mnemonic2(mnemonicR), Operand("R3"), reg), line)
+      case _ => expandDefault(line)
+
+  def expandJMPI(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction1Line(Mnemonic1(m), v) =>
+        // TODO: probably this whole function should be converted to Either
+        val (mnemonicA, mnemonicJ) = m match
+          case "JMPI" => ("LDA", "JMP")
+          case "JMPIZ" => ("LDAZ", "JMPZ")
+          case "JMPINZ" => ("LDANZ", "JMPNZ")
+        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+
+          AtomicLine(line.address + 2, Instruction1Line(Mnemonic1(mnemonicJ), Operand("R3")), line)
+      case _ => expandDefault(line)
+
   def expand(line: AddressedLine): Vector[AtomicLine] =
     line.line match
-      case Instruction1Line(Mnemonic1(m),Operand(v)) if List("LDA","LDAZ","LDANZ").contains(m)  =>
+      case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m)  =>
         expandLDA(line)
+      case Instruction2Line(Mnemonic2(m),_,_) if List("LDR","LDRZ","LDRNZ").contains(m)  =>
+        expandLDR(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m)  =>
+        expandJMPI(line)
       case _ => expandDefault(line)
         /*Vector(
           AtomicLine(line.address, Instruction1Line(Mnemonic1("LDAL"),Operand((v & 0xFF).toShort.toString)), line),
