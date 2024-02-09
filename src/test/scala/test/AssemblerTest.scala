@@ -257,6 +257,17 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       // NOTE: all lines with assembler keywords (except for .DATA) or labels do not affect address
       assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
   
+  Feature("replace labels with addresses"):
+    Scenario("replace labels with addresses"):
+      Given("a program")
+      When("processed")
+      val assembler = Assembler(program)
+      Then("addresses are calculated properly")
+      assert(assembler.isValid)
+      val labelsReplaced = assembler.withLabelsReplaced
+      assert(labelsReplaced(8).line == Instruction1Line(Mnemonic1("JMPIZ"),Operand(f"0x${29}%04X")))
+
+
   Feature("expand lines"):
     Scenario("expand data line into atomic instructions"):
       Given("a program with a data line")
@@ -271,9 +282,10 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
 
     /*Scenario("expand macros"):
       Given("a program with macros")
+      val dataProgram = ".ORG 0x0010\nLDA 0x1234"
       When("processed")
       val assembler = Assembler(program)
       Then("macros are converted to series of instructions")
       val instructions = assembler.instructions
       println(instructions.size)
-      assert(instructions.size == 4)*/
+      assert(instructions.size == 3)*/

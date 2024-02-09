@@ -4,7 +4,7 @@ package assembler
 
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.JavaTokenParsers
-import scala.util.{Try, Success, Failure}
+import scala.util.{Failure, Success, Try}
 
 abstract class BaseParser[T] extends JavaTokenParsers:
   def result: Parser[T]
@@ -127,6 +127,10 @@ object Line:
     case l: SymbolLine => Some(l)
     case _ => None
 
+  def labelOption(line: Line): Option[LabelLine] = line match
+    case l: LabelLine => Some(l)
+    case _ => None
+
   def orgOption(line: Line): Option[Operand] = line match
     case o: OrgLine => Some(o.address)
     case _ => None
@@ -153,6 +157,8 @@ case class AddressedLine(address: Int, line: Line):
 
       case _ => Vector(AtomicLine(address, line, this))
 
+
+
 case class AtomicLine(address: Int, line: Line, origLine: AddressedLine)
 
 case class Assembler(input: String):
@@ -161,6 +167,7 @@ case class Assembler(input: String):
     Assembler.reduce(parsed)
 
   private lazy val nonEmptyLines = inputLines.map(_.filterNot(Line.isEmpty)).getOrElse(Vector())
+  // symbol names mapped to values
   lazy val symbols: Map[Operand, Operand] = nonEmptyLines.flatMap(Line.symbolOption)
     .map(s => s.symbol -> s.value).toMap
   lazy val withSymbolsReplaced: Either[String, Vector[Line]] =
@@ -173,14 +180,48 @@ case class Assembler(input: String):
         case Left(_) => acc
         case Right(accumulator) =>
           line match
-            case OrgLine(addressText) => Assembler.getAddress(addressText) match
+            case OrgLine(addressText) => Assembler.getValue(addressText) match
               case Right(address) => Right((address+line.size, accumulator._2 :+ AddressedLine(address, line)))
               case Left(message) => Left(message)
             case _ => Right((accumulator._1+line.size, accumulator._2 :+ AddressedLine(accumulator._1, line))))
     calculatedAddressed match
       case Left(message) => Left(message)
       case Right((_, lines)) => Right(lines)
-  
+
+  // label names mapped to numeric addresses
+  lazy val labels: Map[Operand, Operand] = withAddress.getOrElse(Vector()).map(l => (l.address,Line.labelOption(l.line)))
+      // get only label lines
+      .filter(_._2.isDefined)
+      // remove colon and map name to address (formatted as hex)
+      .map(l => Operand(l._2.get.label.name.replace(":","")) -> Operand(f"0x${l._1}%04X")).toMap
+    
+  lazy val withLabelsReplaced: Vector[AddressedLine] =
+    // replacing labels is similar to replacing symbols (labels cannot be nested but it doesn't matter) 
+    withAddress.getOrElse(Vector()).map(l => l.copy(line = Line.replaceSymbols(l.line,labels).getOrElse(l.line)))
+
+  /*lazy val withValuesValidated: Either[String, Vector[Line]] =
+    withSymbolsReplaced.getOrElse(Vector()).foldLeft(Right(Vector[Line]()).withLeft[String])((acc, line) =>
+      acc match
+        case Left(_) => acc
+        case Right(accumulator) =>
+          line match
+            case Instruction1Line(Mnemonic1(m), v) =>
+              m match
+                case "LDA" | "LDAZ" | "LDANZ" | "JMPI" | "JMPIZ" | "JMPINZ" | "CALL" =>
+                  Assembler.getValue(v) match
+                    case Left(message) => Left(message)
+                    case Right(num) => Right(accumulator :+ line)
+                case _ => Right(accumulator :+ line)
+            case Instruction2Line(Mnemonic2(m), r, v) =>
+              m match
+                case "LDR" | "LDRZ" | "LDRNZ" =>
+                  Assembler.getValue(v) match
+                    case Left(message) => Left(message)
+                    case Right(num) => Right(accumulator :+ line)
+                case _ => Right(accumulator :+ line)
+            case _ => Right(accumulator :+ line))
+*/
+
   lazy val instructions: Vector[AtomicLine] =
     val toConvert = withAddress.getOrElse(Vector())
     toConvert.flatMap(_.toAtomic)
@@ -195,7 +236,7 @@ object Assembler:
       case (Left(error), Right(_)) => Left(error)
       case (Left(error), Left(lnError)) => Left(f"$error\n$lnError"))
 
-  private def getAddress(address: Operand): Either[String,Int] =
+  private def getValue(address: Operand): Either[String,Int] =
     val (radix, value) = address.name.toLowerCase match
       case hex if hex.startsWith("0x") => (16, hex.substring(2))
       case bin if bin.startsWith("0b") => (2, bin.substring(2))
@@ -203,3 +244,21 @@ object Assembler:
     Try(Integer.parseInt(value, radix).toShort) match
       case Success(addr) => Right(addr)
       case Failure(error) => Left(error.getMessage)
+
+  /*def expand(line: AddressedLine): Either[String,Vector[AtomicLine]] =
+    line.line match
+      case Instruction1Line(Mnemonic1("LDA"),Operand(v)) =>
+        Vector(
+          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDAL"),Operand((v & 0xFF).toShort.toString)), line),
+          AtomicLine(line.address+1, Instruction1Line(Mnemonic1("LDAH"),Operand(((v >> 8) & 0xFF).toShort.toString)), line))
+      case Instruction1Line(Mnemonic1("LDAZ"), Operand(v)) =>
+        Vector(
+          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDALZ"), Operand((v & 0xFF).toShort.toString)), line),
+          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("LDAHZ"), Operand(((v >> 8) & 0xFF).toShort.toString)), line))
+      case Instruction1Line(Mnemonic1("LDANZ"), Operand(v)) =>
+        Vector(
+          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDALNZ"), Operand((v & 0xFF).toShort.toString)), line),
+          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("LDAHNZ"), Operand(((v >> 8) & 0xFF).toShort.toString)), line))
+      case Instruction2Line(Mnemonic2("LDR"), Operand(reg), Operand(value)) =>
+        expand(AddressedLine(line.address, Instruction1Line(Mnemonic1("LDA"),Operand(value)))) :+
+          AtomicLine(line.address + 2, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand(reg)))*/
