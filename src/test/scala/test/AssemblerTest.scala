@@ -256,3 +256,17 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val addressed = assembler.withAddress.getOrElse(Vector())
       // NOTE: all lines with assembler keywords (except for .DATA) or labels do not affect address
       assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
+      
+  Feature("expand lines"):
+    Scenario("expand data line into atomic instructions"):
+      Given("a program with a data line")
+      val dataProgram = ".ORG 0x0010\n.DATA 0x0101,0x0102,0x0103"
+      When("processed")
+      val assembler = Assembler(dataProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.instructions
+      assert(instructions.size==4)
+      assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
+      
+            
+    

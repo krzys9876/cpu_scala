@@ -103,7 +103,6 @@ case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
     case "CALL" => 7
     case "JMPIZ" | "JMPINZ" | "JMPI" => 3
 
-
 case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
   override val operands: Vector[Operand] = Vector(oper1, oper2)
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
@@ -143,7 +142,13 @@ object Line:
 class AssemblerParser extends BaseParser[Line] with LineParser:
   override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
-case class AddressedLine(address: Int, line: Line)
+case class AddressedLine(address: Int, line: Line):
+  def toAtomic: Vector[AddressedLine] =
+    line match
+      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => Vector(this)
+      case DataLine(values) => values.foldLeft((address,Vector[AddressedLine]()))((acc,v)=>
+        (acc._1+1, acc._2 :+ AddressedLine(acc._1, DataLine(Vector(v)))))._2
+      case _ => Vector(this)
 
 case class Assembler(input: String):
   private lazy val inputLines: Either[String,Vector[Line]] =
@@ -171,6 +176,10 @@ case class Assembler(input: String):
       case Left(message) => Left(message)
       case Right((_, lines)) => Right(lines)
 
+  lazy val instructions: Vector[AddressedLine] =
+    val toConvert = withAddress.getOrElse(Vector())
+    toConvert.flatMap(_.toAtomic)
+    
 
   lazy val isValid: Boolean = inputLines.isRight && withSymbolsReplaced.isRight
 
