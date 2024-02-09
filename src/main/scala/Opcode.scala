@@ -122,8 +122,7 @@ object MACRO:
     Vector(INSTR_DEC_SP().value) ++ // DEC SP
       MACRO.LD_A((baseAddress + 7).toShort) ++ // return address to A (determined at compile time)
       Vector(INSTR_LD_RM(3, 1).value) ++ // LD A => (SP) - push return address to stack
-      MACRO.LD_A(callAddress) ++ // call address
-      Vector(INSTR_JMP_A().value) // LD A => PC - jump to subroutine
+      MACRO.JMPI(callAddress) // call address
   def JMPI(targetAddress: Short): Vector[Short] = // 3 steps
     LD_A(targetAddress) ++ Vector(INSTR_JMP_A().value)
   def JMPIZ(targetAddress: Short): Vector[Short] = // 3 steps
