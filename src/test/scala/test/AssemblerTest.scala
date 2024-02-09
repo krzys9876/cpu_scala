@@ -267,6 +267,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val instructions = assembler.instructions
       assert(instructions.size==4)
       assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
+      assert(instructions.map(_.address) == Vector(0x0010,0x0010,0x0011,0x0012))
       
             
     
