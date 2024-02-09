@@ -247,12 +247,12 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.withSymbolsReplaced.isLeft)
       
   Feature("calculate addresses for lines"):
-    Scenario("calculate addresses for non-overlapping program"):
+    Scenario("calculate addresses lines"):
       Given("a program")
       When("processed")
       val assembler = Assembler(program)
       Then("addresses are calculated properly")
       assert(assembler.withAddress.isRight)
       val addressed = assembler.withAddress.getOrElse(Vector())
-      // NOTE: all lines with assembler keywords or labels do not affect address
+      // NOTE: all lines with assembler keywords (except for .DATA) or labels do not affect address
       assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
