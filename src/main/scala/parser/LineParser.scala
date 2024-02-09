@@ -1,8 +1,9 @@
 package org.kr.cpu
+package parser
 
 import scala.util.parsing.combinator.JavaTokenParsers
 
-abstract class Parser[T] extends JavaTokenParsers:
+abstract class BaseParser[T] extends JavaTokenParsers:
   def result:Parser[T]
 
   def process(input: String): Either[String, T] =
@@ -19,7 +20,7 @@ case class OpPort(override val num: Short) extends Operand
 case class OpValue(override val num: Short) extends Operand
 
 
-trait InstructionParser extends Parser[Instruction]:
+trait InstructionParser extends BaseParser[Instruction]:
   def parseNum(str:String): Short = str match
     case hex if hex.toLowerCase().startsWith("0x") => Integer.parseInt(str.substring(2),16).toShort
     case bin if bin.toLowerCase().startsWith("0b") => Integer.parseInt(str.substring(2), 2).toShort
@@ -98,5 +99,5 @@ trait InstructionParser extends Parser[Instruction]:
 
   def instruction: Parser[Instruction] = LDA | LD | JMP | OUT | IN
 
-class LineParser extends Parser[Instruction] with InstructionParser:
+class LineParser extends BaseParser[Instruction] with InstructionParser:
   override def result: Parser[Instruction] = instruction

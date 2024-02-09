@@ -1,12 +1,13 @@
 package org.kr.cpu
 package test
 
+import parser.LineParser
 import org.scalactic.anyvals.PosZInt
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
-class ParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
+class BaseParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
 

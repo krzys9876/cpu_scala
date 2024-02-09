@@ -3,6 +3,7 @@ package test
 
 import assembler.*
 
+import parser.{AssemblerParser, TokenParser}
 import org.scalactic.anyvals.PosZInt
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
