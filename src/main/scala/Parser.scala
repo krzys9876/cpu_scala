@@ -16,19 +16,40 @@ trait Operand:
 case class OpRegister(override val num: Short) extends Operand
 case class OpMemory(override val num: Short) extends Operand
 case class OpPort(override val num: Short) extends Operand
+case class OpValue(override val num: Short) extends Operand
 
 
 trait InstructionParser extends Parser[Instruction]:
+  def parseNum(str:String): Short = str match
+    case hex if hex.toLowerCase().startsWith("0x") => Integer.parseInt(str.substring(2),16).toShort
+    case bin if bin.toLowerCase().startsWith("0b") => Integer.parseInt(str.substring(2), 2).toShort
+    case dec => Integer.parseInt(str).toShort
+    
+  def parseReg(str:String): Short = Integer.parseInt(str.substring(1), 0x10).toShort
+
   private def operandPrefix = "[R|M|P]"
   private def operandSuffix = "[0-9|A-F]"
+  private def operandHex = "0x[0-9|A-F]+"
+  private def operandBin = "0b[0-1]+"
+  private def operandDec = "-?[0-9]+"
   //NOTE: string is interpolated only to avoid compiler warning about "|" doubled characters in string
   private def operandText: Parser[String] = f"($operandPrefix$operandSuffix)".r
-  private def operand: Parser[Operand] = operandText ^^ { op =>
-    val num = Integer.parseInt(op.substring(1), 0x10).toShort
+  private def operandNum: Parser[String] = operandHex.r | operandBin.r | operandDec.r  
+  private def operand: Parser[Operand] = (operandText | operandNum) ^^ { op =>
     op.charAt(0) match
-      case 'R' => OpRegister(num)
-      case 'M' => OpMemory(num)
-      case 'P' => OpPort(num)}
+      case 'R' => OpRegister(parseReg(op))
+      case 'M' => OpMemory(parseReg(op))
+      case 'P' => OpPort(parseReg(op))
+      case d if d.isDigit || d=='-' => OpValue(parseNum(op))} 
+
+  private def decodeLDA(mnemonic: String, op: Operand): Instruction =
+    (mnemonic, op) match
+      case ("LDAL", v: OpValue) => INSTR_LD_AL(v.num)
+      case ("LDALZ", v: OpValue) => INSTR_LDZ_AL(v.num)
+      case ("LDALNZ", v: OpValue) => INSTR_LDNZ_AL(v.num)
+      case ("LDAH", v: OpValue) => INSTR_LD_AH(v.num)
+      case ("LDAHZ", v: OpValue) => INSTR_LDZ_AH(v.num)
+      case ("LDAHNZ", v: OpValue) => INSTR_LDNZ_AH(v.num)
 
   private def decodeLD(mnemonic: String, op1: Operand, op2: Operand): Instruction =
     (mnemonic, op1, op2) match
@@ -63,6 +84,9 @@ trait InstructionParser extends Parser[Instruction]:
   private def LD: Parser[Instruction] =
     ("LDNZ" | "LDZ" | "LD") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeLD(m,op1,op2) }
 
+  private def LDA: Parser[Instruction] =
+    ("LDALNZ" | "LDAHNZ" | "LDALZ" | "LDAHZ" | "LDAL" | "LDAH") ~ operand ^^ { case m ~ op => decodeLDA(m, op) }
+
   private def JMP: Parser[Instruction] =
     ("JMPNZ" | "JMPZ" | "JMP") ~ operand ^^ { case m ~ o => decodeJMP(m,o) }
 
@@ -72,7 +96,7 @@ trait InstructionParser extends Parser[Instruction]:
   private def IN: Parser[Instruction] =
     ("INNZ" | "INZ" | "IN") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeIN(m, op1, op2) }
 
-  def instruction: Parser[Instruction] = LD | JMP | OUT | IN
+  def instruction: Parser[Instruction] = LDA | LD | JMP | OUT | IN
 
 class LineParser extends Parser[Instruction] with InstructionParser:
   override def result: Parser[Instruction] = instruction

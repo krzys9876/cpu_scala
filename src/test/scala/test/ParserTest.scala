@@ -11,6 +11,18 @@ class ParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckProper
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
 
   Feature("Parse single instructions"):
+    Scenario("parse LDA immediate"):
+      val v = -25.toShort
+      forAll(TestUtils.byteValueGen):
+        v =>
+          assert(LineParser().process(f"LDAL 0x$v%02X").contains(INSTR_LD_AL(v)))
+          assert(LineParser().process(f"LDALZ 0b${Integer.toString(v,2)}").contains(INSTR_LDZ_AL(v)))
+          assert(LineParser().process(f"LDALNZ $v").contains(INSTR_LDNZ_AL(v)))
+          assert(LineParser().process(f"LDAH 0x$v%02X").contains(INSTR_LD_AH(v)))
+          assert(LineParser().process(f"LDAHZ 0b${Integer.toString(v,2)}").contains(INSTR_LDZ_AH(v)))
+          assert(LineParser().process(f"LDAHNZ $v").contains(INSTR_LDNZ_AH(v)))
+          assert(LineParser().process(f"LDAL -$v").contains(INSTR_LD_AL((-v).toShort)))
+
     Scenario("parse LD RR"):
       forAll(TestUtils.registerIndexGen, TestUtils.registerIndexGen):
         (r1, r2) =>
