@@ -268,7 +268,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(labelsReplaced(8).line == Instruction1Line(Mnemonic1("JMPIZ"),Operand(f"0x${29}%04X")))
 
 
-  Feature("expand lines"):
+  Feature("expand data lines"):
     Scenario("expand data line into atomic instructions"):
       Given("a program with a data line")
       val dataProgram = ".ORG 0x0010\n.DATA 0x0101,0x0102,0x0103"
@@ -279,13 +279,17 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(instructions.size==4)
       assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
       assert(instructions.map(_.address) == Vector(0x0010,0x0010,0x0011,0x0012))
-
-    /*Scenario("expand macros"):
-      Given("a program with macros")
-      val dataProgram = ".ORG 0x0010\nLDA 0x1234"
+    
+  Feature("expand macros"):
+    Scenario("expand LDA"):
+      Given("a program with macro")
+      val ldaProgram = ".ORG 0x0010\nLDA 0x1234"
       When("processed")
-      val assembler = Assembler(program)
+      val assembler = Assembler(ldaProgram)
       Then("macros are converted to series of instructions")
       val instructions = assembler.instructions
-      println(instructions.size)
-      assert(instructions.size == 3)*/
+      println(instructions.mkString("\n"))
+      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDAL"), Operand("0x34")))
+      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAH"), Operand("0x12")))
+      assert(instructions(1).address == 0x0010)
+      assert(instructions(2).address == 0x0011)

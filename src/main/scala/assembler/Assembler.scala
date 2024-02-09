@@ -65,16 +65,16 @@ case class Operand(name: String) extends Token:
   def replace(map: Map[Operand, Operand]): Operand = map.getOrElse(this,this)
 
 sealed trait Line:
-  val operands: Vector[Operand] = Vector()
+  lazy val operands: Vector[Operand] = Vector()
   def replaceSymbols(map: Map[Operand, Operand]): Line = this
   def hasSymbols(map: Map[Operand, Operand]): Boolean = false
-  val size: Short = 0
+  lazy val size: Short = 0
 
 case class EmptyLine() extends Line
 case class LabelLine(label: Label) extends Line
 
 case class DataLine(value: Vector[Operand]) extends Line:
-  override val operands: Vector[Operand] = value
+  override lazy val operands: Vector[Operand] = value
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(value = value.map(_.replace(map)))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))
@@ -84,34 +84,34 @@ case class SymbolLine(symbol: Operand, value: Operand) extends Line:
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == value)
 
 case class OrgLine(address: Operand) extends Line:
-  override val operands: Vector[Operand] = Vector(address)
+  override lazy val operands: Vector[Operand] = Vector(address)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(address = address.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == address)
 
 case class Instruction0Line(mnemonic: Mnemonic0) extends Line:
-  override val size: Short = mnemonic.name match
-    case "NOP" | "JMPAZ" | "JMPANZ" | "JMPA" => 1
+  override lazy val size: Short = mnemonic.name match
     case "RET" => 3
+    case _ => 1
 
 case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
-  override val operands: Vector[Operand] = Vector(oper)
+  override lazy val operands: Vector[Operand] = Vector(oper)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(oper = oper.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == oper)
-  override val size: Short = mnemonic.name match
-    case "INC" | "DEC" => 1
+  override lazy val size: Short = mnemonic.name match
     case "LDAZ" | "LDANZ" | "LDA" => 2
     case "CALL" => 7
     case "JMPIZ" | "JMPINZ" | "JMPI" => 3
+    case _ => 1
 
 case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
-  override val operands: Vector[Operand] = Vector(oper1, oper2)
+  override lazy val operands: Vector[Operand] = Vector(oper1, oper2)
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(oper1 = oper1.replace(map), oper2 = oper2.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean =
     map.keys.exists(k => k == oper1 || k == oper2)
-  override val size: Short = mnemonic.name match
+  override lazy val size: Short = mnemonic.name match
     case "LDRZ" | "LDRNZ" | "LDR" => 3
-    case "LDZ" | "LDNZ" | "LD" | "ADD" | "SUB" | "AND" | "OR" | "CMP" => 1
+    case _ => 1
 
 
 object Line:
@@ -147,15 +147,15 @@ class AssemblerParser extends BaseParser[Line] with LineParser:
   override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
 case class AddressedLine(address: Int, line: Line):
+  private def toAtomicDefault: Vector[AtomicLine] = Vector(AtomicLine(address, line, this))
+
   def toAtomic: Vector[AtomicLine] =
     line match
-      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => Vector(AtomicLine(address, line, this))
+      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => toAtomicDefault
       case DataLine(values) => values.foldLeft((address,Vector[AtomicLine]()))((acc,v)=>
         (acc._1+1, acc._2 :+ AtomicLine(acc._1, DataLine(Vector(v)), this)))._2
-      //case Instruction2Line(Mnemonic2("LDR"), oper1, oper2) =>
-      //  val expanded = Vector
-
-      case _ => Vector(AtomicLine(address, line, this))
+      case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => Assembler.expand(this)
+      case _ => toAtomicDefault
 
 
 
@@ -194,9 +194,9 @@ case class Assembler(input: String):
       .filter(_._2.isDefined)
       // remove colon and map name to address (formatted as hex)
       .map(l => Operand(l._2.get.label.name.replace(":","")) -> Operand(f"0x${l._1}%04X")).toMap
-    
+
   lazy val withLabelsReplaced: Vector[AddressedLine] =
-    // replacing labels is similar to replacing symbols (labels cannot be nested but it doesn't matter) 
+    // replacing labels is similar to replacing symbols (labels cannot be nested but it doesn't matter)
     withAddress.getOrElse(Vector()).map(l => l.copy(line = Line.replaceSymbols(l.line,labels).getOrElse(l.line)))
 
   /*lazy val withValuesValidated: Either[String, Vector[Line]] =
@@ -223,7 +223,7 @@ case class Assembler(input: String):
 */
 
   lazy val instructions: Vector[AtomicLine] =
-    val toConvert = withAddress.getOrElse(Vector())
+    val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
 
   lazy val isValid: Boolean = inputLines.isRight && withSymbolsReplaced.isRight
@@ -245,10 +245,30 @@ object Assembler:
       case Success(addr) => Right(addr)
       case Failure(error) => Left(error.getMessage)
 
-  /*def expand(line: AddressedLine): Either[String,Vector[AtomicLine]] =
+  def expandDefault(line: AddressedLine): Vector[AtomicLine] =  Vector(AtomicLine(line.address, line.line, line))
+
+  def expandLDA(line: AddressedLine): Vector[AtomicLine] =
     line.line match
-      case Instruction1Line(Mnemonic1("LDA"),Operand(v)) =>
+      case Instruction1Line(Mnemonic1(m), v) =>
+        // TODO: probably this whole function should be converted to Either
+        val value = Assembler.getValue(v).getOrElse(0)
+        val valueL = (value & 0x00FF).toShort
+        val valueH = ((value >> 8) & 0x00FF).toShort
+        val (mnemonicL, mnemonicH) = m match
+          case "LDA" => ("LDAL", "LDAH")
+          case "LDAZ" => ("LDALZ", "LDAHZ")
+          case "LDANZ" => ("LDALNZ", "LDAHNZ")
         Vector(
+          AtomicLine(line.address, Instruction1Line(Mnemonic1(mnemonicL), Operand(f"0x$valueL%02X")), line),
+          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1(mnemonicH), Operand(f"0x$valueH%02X")), line))
+      case _ => expandDefault(line)
+
+  def expand(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction1Line(Mnemonic1(m),Operand(v)) if List("LDA","LDAZ","LDANZ").contains(m)  =>
+        expandLDA(line)
+      case _ => expandDefault(line)
+        /*Vector(
           AtomicLine(line.address, Instruction1Line(Mnemonic1("LDAL"),Operand((v & 0xFF).toShort.toString)), line),
           AtomicLine(line.address+1, Instruction1Line(Mnemonic1("LDAH"),Operand(((v >> 8) & 0xFF).toShort.toString)), line))
       case Instruction1Line(Mnemonic1("LDAZ"), Operand(v)) =>
