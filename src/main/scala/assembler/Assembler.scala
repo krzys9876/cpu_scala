@@ -266,25 +266,32 @@ object Assembler:
   def expandLDR(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction2Line(Mnemonic2(m), reg, v) =>
-        // TODO: probably this whole function should be converted to Either
         val (mnemonicA, mnemonicR) = m match
           case "LDR" => ("LDA", "LD")
           case "LDRZ" => ("LDAZ", "LDZ")
           case "LDRNZ" => ("LDANZ", "LDNZ")
-        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+  
+        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+
         AtomicLine(line.address+2, Instruction2Line(Mnemonic2(mnemonicR), Operand("R3"), reg), line)
       case _ => expandDefault(line)
 
   def expandJMPI(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1(m), v) =>
-        // TODO: probably this whole function should be converted to Either
         val (mnemonicA, mnemonicJ) = m match
           case "JMPI" => ("LDA", "JMP")
           case "JMPIZ" => ("LDAZ", "JMPZ")
           case "JMPINZ" => ("LDANZ", "JMPNZ")
         expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+
           AtomicLine(line.address + 2, Instruction1Line(Mnemonic1(mnemonicJ), Operand("R3")), line)
+      case _ => expandDefault(line)
+
+  def expandCALL(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction1Line(Mnemonic1("CALL"), v) =>
+        Vector(AtomicLine(line.address, Instruction1Line(Mnemonic1("DEC"), Operand("R1")), line)) ++
+          expandLDA(AddressedLine(line.address+1, Instruction1Line(Mnemonic1("LDA"), Operand(f"0x${line.address+7}%04X")))) ++
+          Vector(AtomicLine(line.address + 3, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand("M1")), line)) ++
+          expandJMPI(AddressedLine(line.address + 4, Instruction1Line(Mnemonic1("JMPI"), v)))
       case _ => expandDefault(line)
 
   def expand(line: AddressedLine): Vector[AtomicLine] =
@@ -295,6 +302,8 @@ object Assembler:
         expandLDR(line)
       case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m)  =>
         expandJMPI(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m)  =>
+        expandCALL(line)
       case _ => expandDefault(line)
         /*Vector(
           AtomicLine(line.address, Instruction1Line(Mnemonic1("LDAL"),Operand((v & 0xFF).toShort.toString)), line),
