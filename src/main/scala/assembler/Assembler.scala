@@ -69,6 +69,7 @@ sealed trait Line:
   def replaceSymbols(map: Map[Operand, Operand]): Line = this
   def hasSymbols(map: Map[Operand, Operand]): Boolean = false
   val size: Short = 0
+  val validate: Either[String, Line] = Right(this)
 
 case class EmptyLine() extends Line
 case class LabelLine(label: Label) extends Line
@@ -143,12 +144,28 @@ class AssemblerParser extends BaseParser[Line] with LineParser:
   override def result: Parser[Line] = labelLine | dataLine | symbolLine | orgLine | instr0 | instr1 | instr2 | emptyLine
 
 case class AddressedLine(address: Int, line: Line):
-  def toAtomic: Vector[AddressedLine] =
+  lazy val validate: Either[String, ValidatedLine] =
     line match
-      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => Vector(this)
-      case DataLine(values) => values.foldLeft((address,Vector[AddressedLine]()))((acc,v)=>
-        (acc._1+1, acc._2 :+ AddressedLine(acc._1, DataLine(Vector(v)))))._2
-      case _ => Vector(this)
+      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => Right(ValidatedLine(address, line))
+      case DataLine(values) => 
+        line.validate match
+          case Right(l) => Right(ValidatedLine(address, l))
+          case Left(message) => Left(message)
+        
+  
+/*  def toAtomic: Vector[AtomicLine] =
+    line match
+      case SymbolLine(_, _) | OrgLine(_) | LabelLine(_) => Vector(AtomicLine(address, line, this))
+      case DataLine(values) => values.foldLeft((address,Vector[AtomicLine]()))((acc,v)=>
+        (acc._1+1, acc._2 :+ AtomicLine(acc._1, DataLine(Vector(v)), this)))._2
+      case Instruction2Line(Mnemonic2("LDR"), oper1, oper2) =>
+        val expanded = Vector
+
+      case _ => Vector(AtomicLine(address, line, this))*/
+
+case class ValidatedLine(address: Int, line: Line)
+
+case class AtomicLine(address: Int, line: Line, origLine: AddressedLine)
 
 case class Assembler(input: String):
   private lazy val inputLines: Either[String,Vector[Line]] =
@@ -176,10 +193,15 @@ case class Assembler(input: String):
       case Left(message) => Left(message)
       case Right((_, lines)) => Right(lines)
 
-  lazy val instructions: Vector[AddressedLine] =
+  
+  lazy val validated: Either[String, Vector[ValidatedLine]] =
+    val preValidated = withAddress.getOrElse(Vector()).map(_.validate)
+    Assembler.reduce(preValidated)
+  
+  /*lazy val instructions: Vector[AtomicLine] =
     val toConvert = withAddress.getOrElse(Vector())
     toConvert.flatMap(_.toAtomic)
-    
+    */
 
   lazy val isValid: Boolean = inputLines.isRight && withSymbolsReplaced.isRight
 
