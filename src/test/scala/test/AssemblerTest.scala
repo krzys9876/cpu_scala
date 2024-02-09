@@ -333,3 +333,15 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
         (0x15, Instruction1Line(Mnemonic1("LDAH"), Operand("0x56"))),
         (0x16, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))
 
+    Scenario("expand RET"):
+      Given("a program with macro")
+      val ldrProgram = ".ORG 0x0010\nRET"
+      When("processed")
+      val assembler = Assembler(ldrProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1, 4)
+      println(instructions.mkString("\n"))
+      assert(instructions == Vector(
+        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3"))),
+        (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1"))),
+        (0x12, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))

@@ -199,29 +199,6 @@ case class Assembler(input: String):
     // replacing labels is similar to replacing symbols (labels cannot be nested but it doesn't matter)
     withAddress.getOrElse(Vector()).map(l => l.copy(line = Line.replaceSymbols(l.line,labels).getOrElse(l.line)))
 
-  /*lazy val withValuesValidated: Either[String, Vector[Line]] =
-    withSymbolsReplaced.getOrElse(Vector()).foldLeft(Right(Vector[Line]()).withLeft[String])((acc, line) =>
-      acc match
-        case Left(_) => acc
-        case Right(accumulator) =>
-          line match
-            case Instruction1Line(Mnemonic1(m), v) =>
-              m match
-                case "LDA" | "LDAZ" | "LDANZ" | "JMPI" | "JMPIZ" | "JMPINZ" | "CALL" =>
-                  Assembler.getValue(v) match
-                    case Left(message) => Left(message)
-                    case Right(num) => Right(accumulator :+ line)
-                case _ => Right(accumulator :+ line)
-            case Instruction2Line(Mnemonic2(m), r, v) =>
-              m match
-                case "LDR" | "LDRZ" | "LDRNZ" =>
-                  Assembler.getValue(v) match
-                    case Left(message) => Left(message)
-                    case Right(num) => Right(accumulator :+ line)
-                case _ => Right(accumulator :+ line)
-            case _ => Right(accumulator :+ line))
-*/
-
   lazy val instructions: Vector[AtomicLine] =
     val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
@@ -294,6 +271,14 @@ object Assembler:
           expandJMPI(AddressedLine(line.address + 4, Instruction1Line(Mnemonic1("JMPI"), v)))
       case _ => expandDefault(line)
 
+  def expandRET(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction0Line(Mnemonic0("RET")) =>
+        Vector(AtomicLine(line.address, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3")), line),
+          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("INC"), Operand("R1")), line),
+          AtomicLine(line.address + 2, Instruction1Line(Mnemonic1("JMP"), Operand("R3")), line))
+      case _ => expandDefault(line)
+
   def expand(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m)  =>
@@ -304,18 +289,6 @@ object Assembler:
         expandJMPI(line)
       case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m)  =>
         expandCALL(line)
+      case Instruction0Line(Mnemonic0(m)) if List("RET").contains(m)  =>
+        expandRET(line)
       case _ => expandDefault(line)
-        /*Vector(
-          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDAL"),Operand((v & 0xFF).toShort.toString)), line),
-          AtomicLine(line.address+1, Instruction1Line(Mnemonic1("LDAH"),Operand(((v >> 8) & 0xFF).toShort.toString)), line))
-      case Instruction1Line(Mnemonic1("LDAZ"), Operand(v)) =>
-        Vector(
-          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDALZ"), Operand((v & 0xFF).toShort.toString)), line),
-          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("LDAHZ"), Operand(((v >> 8) & 0xFF).toShort.toString)), line))
-      case Instruction1Line(Mnemonic1("LDANZ"), Operand(v)) =>
-        Vector(
-          AtomicLine(line.address, Instruction1Line(Mnemonic1("LDALNZ"), Operand((v & 0xFF).toShort.toString)), line),
-          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("LDAHNZ"), Operand(((v >> 8) & 0xFF).toShort.toString)), line))
-      case Instruction2Line(Mnemonic2("LDR"), Operand(reg), Operand(value)) =>
-        expand(AddressedLine(line.address, Instruction1Line(Mnemonic1("LDA"),Operand(value)))) :+
-          AtomicLine(line.address + 2, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand(reg)))*/
