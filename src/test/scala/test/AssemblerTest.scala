@@ -219,7 +219,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(replaced(3)==SymbolLine(Operand("V3"),Operand("0x0010")))
       assert(replaced(5)==Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
       assert(replaced(6)==Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
-    
+
     Scenario("Replace nested symbols"):
       Given("a program with many nested levels of symbols")
       When("processed")
@@ -245,7 +245,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       Then("all symbols are correctly replaced")
       assert(!assembler.isValid)
       assert(assembler.withSymbolsReplaced.isLeft)
-      
+
   Feature("calculate addresses for lines"):
     Scenario("calculate addresses lines"):
       Given("a program")
@@ -256,7 +256,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val addressed = assembler.withAddress.getOrElse(Vector())
       // NOTE: all lines with assembler keywords (except for .DATA) or labels do not affect address
       assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
-  
+
   Feature("replace labels with addresses"):
     Scenario("replace labels with addresses"):
       Given("a program")
@@ -279,7 +279,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(instructions.size==4)
       assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
       assert(instructions.map(_.address) == Vector(0x0010,0x0010,0x0011,0x0012))
-    
+
   Feature("expand macros"):
     Scenario("expand LDA"):
       Given("a program with macro")
@@ -287,11 +287,10 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldaProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions
-      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDAL"), Operand("0x34")))
-      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAH"), Operand("0x12")))
-      assert(instructions(1).address == 0x0010)
-      assert(instructions(2).address == 0x0011)
+      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,3)
+      assert(instructions == Vector(
+        (0x10, Instruction1Line(Mnemonic1("LDAL"), Operand("0x34"))),
+        (0x11, Instruction1Line(Mnemonic1("LDAH"), Operand("0x12")))))
 
     Scenario("expand LDR"):
       Given("a program with macro")
@@ -299,13 +298,11 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions
-      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDALNZ"), Operand("0x45")))
-      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAHNZ"), Operand("0x23")))
-      assert(instructions(3).line == Instruction2Line(Mnemonic2("LDNZ"), Operand("R3"), Operand("R8")))
-      assert(instructions(1).address == 0x0010)
-      assert(instructions(2).address == 0x0011)
-      assert(instructions(3).address == 0x0012)
+      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,4)
+      assert(instructions == Vector(
+        (0x10, Instruction1Line(Mnemonic1("LDALNZ"), Operand("0x45"))),
+        (0x11, Instruction1Line(Mnemonic1("LDAHNZ"), Operand("0x23"))),
+        (0x12, Instruction2Line(Mnemonic2("LDNZ"), Operand("R3"), Operand("R8")))))
 
     Scenario("expand JMPI"):
       Given("a program with macro")
@@ -313,10 +310,9 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions
-      assert(instructions(1).line == Instruction1Line(Mnemonic1("LDALZ"), Operand("0x67")))
-      assert(instructions(2).line == Instruction1Line(Mnemonic1("LDAHZ"), Operand("0x45")))
-      assert(instructions(3).line == Instruction1Line(Mnemonic1("JMPZ"), Operand("R3")))
-      assert(instructions(1).address == 0x0010)
-      assert(instructions(2).address == 0x0011)
-      assert(instructions(3).address == 0x0012)      
+      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,4)
+      assert(instructions == Vector(
+        (0x10, Instruction1Line(Mnemonic1("LDALZ"), Operand("0x67"))),
+        (0x11, Instruction1Line(Mnemonic1("LDAHZ"), Operand("0x45"))),
+        (0x12, Instruction1Line(Mnemonic1("JMPZ"), Operand("R3")))))
+
