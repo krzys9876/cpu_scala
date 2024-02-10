@@ -72,3 +72,19 @@ class BaseParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPr
           assert(LineParser().process(f"OUT R$r%01X P$p%01X").contains(INSTR_LD_RO(r, p)))
           assert(LineParser().process(f"OUTZ R$r%01X P$p%01X").contains(INSTR_LDZ_RO(r, p)))
           assert(LineParser().process(f"OUTNZ R$r%01X P$p%01X").contains(INSTR_LDNZ_RO(r, p)))
+
+    Scenario("parse ALU (2 operands)"):
+      forAll(TestUtils.registerIndexGen, TestUtils.registerIndexGen):
+        (r1, r2) =>
+          assert(LineParser().process(f"ADD R$r1%01X R$r2%01X").contains(INSTR_ADD(r1,r2)))
+          assert(LineParser().process(f"SUB R$r1%01X R$r2%01X").contains(INSTR_SUB(r1,r2)))
+          assert(LineParser().process(f"CMP R$r1%01X R$r2%01X").contains(INSTR_CMP(r1,r2)))
+          assert(LineParser().process(f"AND R$r1%01X R$r2%01X").contains(INSTR_AND(r1,r2)))
+          assert(LineParser().process(f"OR R$r1%01X R$r2%01X").contains(INSTR_OR(r1,r2)))
+          assert(LineParser().process(f"XOR R$r1%01X R$r2%01X").contains(INSTR_XOR(r1,r2)))
+
+    Scenario("parse ALU (1 operand)"):
+      forAll(TestUtils.registerIndexGen):
+        r =>
+          assert(LineParser().process(f"INC R$r%01X").contains(INSTR_INC(r)))
+          assert(LineParser().process(f"DEC R$r%01X").contains(INSTR_DEC(r)))
