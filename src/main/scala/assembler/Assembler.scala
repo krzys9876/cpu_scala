@@ -27,28 +27,35 @@ sealed trait Line:
   def hasSymbols(map: Map[Operand, Operand]): Boolean = false
   lazy val size: Short = 0
 
-case class EmptyLine() extends Line
-case class LabelLine(label: Label) extends Line
+case class EmptyLine() extends Line:
+  override def toString: String = "[]"
+  
+case class LabelLine(label: Label) extends Line:
+  override def toString: String = f"${label.name}"
 
 case class DataLine(value: Vector[Operand]) extends Line:
   override lazy val operands: Vector[Operand] = value
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(value = value.map(_.replace(map)))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))
+  override def toString: String = f".DATA ${value.map(_.name).mkString(",")}"
 
 case class SymbolLine(symbol: Operand, value: Operand) extends Line:
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(value = value.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == value)
+  override def toString: String = f".SYMBOL ${symbol.name} = ${value.name}"
 
 case class OrgLine(address: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(address)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(address = address.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == address)
+  override def toString: String = f".ORG ${address.name}"
 
 case class Instruction0Line(mnemonic: Mnemonic0) extends Line:
   override lazy val size: Short = mnemonic.name match
     case "RET" => 3
     case _ => 1
+  override def toString: String = f"${mnemonic.name}"
 
 case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(oper)
@@ -59,6 +66,7 @@ case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
     case "CALL" => 7
     case "JMPIZ" | "JMPINZ" | "JMPI" => 3
     case _ => 1
+  override def toString: String = f"${mnemonic.name} ${oper.name}"
 
 case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(oper1, oper2)
@@ -69,6 +77,7 @@ case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand)
   override lazy val size: Short = mnemonic.name match
     case "LDRZ" | "LDRNZ" | "LDR" => 3
     case _ => 1
+  override def toString: String = f"${mnemonic.name} ${oper1.name} ${oper2.name}"
 
 
 object Line:
@@ -115,17 +124,33 @@ case class AddressedLine(address: Int, line: Line):
 
 case class AtomicLine(address: Int, line: Line, origLine: AddressedLine)
 
+case class InputLine(num: Int, line: String):
+  override def toString: String = f"$num%04d $line"
+
+case class ParsedLine(line: Line, origLine: InputLine):
+  override def toString: String = f"${line.toString} | ${origLine.toString}"
+
 case class Assembler(input: String):
-  private lazy val inputLines: Either[String,Vector[Line]] =
-    val parsed = input.split("\n").toVector.map(AssemblerParser().process)
+
+  // Make line numbers 1-based
+  lazy val inputLines: Vector[InputLine] = input.strip().split("\n").toVector.zipWithIndex.map(l => InputLine(l._2 + 1, l._1))
+
+  lazy val parsedLines: Either[String,Vector[ParsedLine]] =
+    val parsed = inputLines.map(l =>
+      AssemblerParser().process(l.line) match
+        case Left(message) => Left(message)
+        case Right(pLine) => Right(ParsedLine(pLine, l)))
     Assembler.reduce(parsed)
 
-  private lazy val nonEmptyLines = inputLines.map(_.filterNot(Line.isEmpty)).getOrElse(Vector())
+  private lazy val nonEmptyLines = parsedLines.map(lines => lines.filterNot(line => Line.isEmpty(line.line))).getOrElse(Vector())
   // symbol names mapped to values
-  lazy val symbols: Map[Operand, Operand] = nonEmptyLines.flatMap(Line.symbolOption)
+  lazy val symbols: Map[Operand, Operand] = nonEmptyLines.flatMap(l => Line.symbolOption(l.line))
     .map(s => s.symbol -> s.value).toMap
-  lazy val withSymbolsReplaced: Either[String, Vector[Line]] =
-    val replaced = nonEmptyLines.map(Line.replaceSymbols(_,symbols))
+  lazy val withSymbolsReplaced: Either[String, Vector[ParsedLine]] =
+    val replaced = nonEmptyLines.map(l =>
+      Line.replaceSymbols(l.line,symbols) match
+        case Left(message) => Left(message)
+        case Right(rLine) => Right(ParsedLine(rLine,l.origLine)))
     Assembler.reduce(replaced)
 
   lazy val withAddress: Either[String, Vector[AddressedLine]] =
@@ -133,11 +158,11 @@ case class Assembler(input: String):
       acc match
         case Left(_) => acc
         case Right(accumulator) =>
-          line match
+          line.line match
             case OrgLine(addressText) => Assembler.getValue(addressText) match
-              case Right(address) => Right((address+line.size, accumulator._2 :+ AddressedLine(address, line)))
+              case Right(address) => Right((address+line.line.size, accumulator._2 :+ AddressedLine(address, line.line)))
               case Left(message) => Left(message)
-            case _ => Right((accumulator._1+line.size, accumulator._2 :+ AddressedLine(accumulator._1, line))))
+            case _ => Right((accumulator._1+line.line.size, accumulator._2 :+ AddressedLine(accumulator._1, line.line))))
     calculatedAddressed match
       case Left(message) => Left(message)
       case Right((_, lines)) => Right(lines)
@@ -157,7 +182,7 @@ case class Assembler(input: String):
     val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
 
-  lazy val isValid: Boolean = inputLines.isRight && withSymbolsReplaced.isRight
+  lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight
 
 object Assembler:
   def reduce[T](in: Vector[Either[String,T]]): Either[String, Vector[T]] = in

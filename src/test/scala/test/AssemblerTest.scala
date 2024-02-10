@@ -217,9 +217,9 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.symbols.get(Operand("V2")).contains(Operand("0x0010")))
       assert(assembler.symbols.get(Operand("V3")).contains(Operand("V2")))
       val replaced = assembler.withSymbolsReplaced.getOrElse(Vector())
-      assert(replaced(3)==SymbolLine(Operand("V3"),Operand("0x0010")))
-      assert(replaced(5)==Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
-      assert(replaced(6)==Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
+      assert(replaced(3).line == SymbolLine(Operand("V3"),Operand("0x0010")))
+      assert(replaced(5).line == Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
+      assert(replaced(6).line == Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
 
     Scenario("Replace nested symbols"):
       Given("a program with many nested levels of symbols")
@@ -227,7 +227,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val assembler = Assembler(symbolProgram)
       Then("all symbols are correctly replaced")
       val replaced = assembler.withSymbolsReplaced.getOrElse(Vector())
-      assert(replaced(9)==SymbolLine(Operand("VA"),Operand("0x0001")))
+      assert(replaced(9).line == SymbolLine(Operand("VA"),Operand("0x0001")))
 
     Scenario("Do not replace when there are too many levels of nested symbols"):
       Given("a program with too many nested levels of symbols")
@@ -346,3 +346,16 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
         (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3"))),
         (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1"))),
         (0x12, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))
+  
+  Feature("track input lines through all assembly stages"):
+    Scenario("track input lines through all assembly stages"):
+      Given("a program with macro")
+      When("processed")
+      val assembler = Assembler(program)
+      Then("input line are tracked up to final atomic lines")
+      println(assembler.inputLines.mkString("\n"))
+      assert(assembler.inputLines.size==14)
+      assert(assembler.inputLines.map(_.num).min == 1)
+      assert(assembler.inputLines.map(_.num).max == 14)
+      println(assembler.inputLines.mkString("\n"))
+    
