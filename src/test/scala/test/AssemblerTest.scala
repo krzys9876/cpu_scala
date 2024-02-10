@@ -180,10 +180,10 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       |CMP R5,R6
       |JMPIZ END
       |LDA 0x0000
-      |LD R3,P0
+      |OUT R3,P0
       |END:
       |LDA 0x0001
-      |LD R3,P1
+      |OUT R3,P1
       |""".stripMargin 
   
   Feature("Parse a program"):
@@ -376,3 +376,5 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val atomic = assembler.atomic
       println(atomic.mkString("\n"))
       assert(atomic.size == 25)
+      val machine = assembler.machineCode.getOrElse(Vector())
+      println(machine.mkString("\n"))

@@ -2,7 +2,7 @@ package org.kr.cpu
 
 package assembler
 
-import parser.AssemblerParser
+import parser.{AssemblerParser, LineParser}
 
 import scala.annotation.tailrec
 import scala.util.parsing.combinator.JavaTokenParsers
@@ -127,8 +127,33 @@ case class AtomicLine(address: Int, line: Line, origLine: AddressedLine):
       case OrgLine(_) | LabelLine(_) | SymbolLine(_,_) => f"[${line.toString}]"
       case _=> line.toString
     f"0x$address%04X $lineStr | ${origLine.toString}"
+    
+  def parseInstruction(toParse: String): Either[String, MachineCodeLine] =
+    LineParser().process(toParse) match
+      case Left(message) => Left(message)
+      case Right(instr) => Right(MachineCodeLine(address, Some(instr.value), Some(instr), this))
+  
+  def parseData(data: Vector[Operand]): Either[String, MachineCodeLine] =
+    data match
+      case d if d.size==1 => Assembler.getValue(d.head) match
+        case Left(message) => Left(message)
+        case Right(v) => Right(MachineCodeLine(address, Some(v.toShort), None, this))
+      case _ => Left("Improper DATA line (should contain 1 value)")  
+    
+  def toMachineCode: Either[String, MachineCodeLine] =
+    line match
+      case Instruction0Line(m) => parseInstruction(f"${m.name}")
+      case Instruction1Line(m,op) => parseInstruction(f"${m.name} ${op.name}")
+      case Instruction2Line(m,op1,op2) => parseInstruction(f"${m.name} ${op1.name} ${op2.name}")
+      case DataLine(value) => parseData(value)
+      case _ => Right(MachineCodeLine(address, None, None, this))
 
-case class MachineCodeLine(address: Int, instruction: Instruction, origLine: AtomicLine)
+
+case class MachineCodeLine(address: Int, value: Option[Short], instruction: Option[Instruction], origLine: AtomicLine):
+  override def toString: String =
+    val valueStr = if(value.isDefined) f"${value.get}%04X" else "[]"
+    val instrStr = if(instruction.isDefined) instruction.get.toString else "[]"
+    f"$address%04X $valueStr $instrStr | ${origLine.toString}"
 
 case class InputLine(num: Int, line: String):
   override def toString: String = f"$num%04d $line"
@@ -187,6 +212,10 @@ case class Assembler(input: String):
     val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
 
+  lazy val machineCode: Either[String, Vector[MachineCodeLine]] =
+    val mCode = atomic.map(_.toMachineCode)
+    Assembler.reduce(mCode)
+
 
   lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight
 
@@ -198,7 +227,7 @@ object Assembler:
       case (Left(error), Right(_)) => Left(error)
       case (Left(error), Left(lnError)) => Left(f"$error\n$lnError"))
 
-  private def getValue(address: Operand): Either[String,Int] =
+  def getValue(address: Operand): Either[String,Int] =
     val (radix, value) = address.name.toLowerCase match
       case hex if hex.startsWith("0x") => (16, hex.substring(2))
       case bin if bin.startsWith("0b") => (2, bin.substring(2))
