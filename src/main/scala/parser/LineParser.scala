@@ -82,6 +82,20 @@ trait InstructionParser extends BaseParser[Instruction]:
       case ("INZ", r: OpRegister, p: OpPort) => INSTR_LDZ_RI(r.num, p.num)
       case ("INNZ", r: OpRegister, p: OpPort) => INSTR_LDNZ_RI(r.num, p.num)
 
+  private def decodeALU2(mnemonic: String, op1: Operand, op2: Operand): Instruction =
+    (mnemonic, op1, op2) match
+      case ("ADD", r1: OpRegister, r2: OpRegister) => INSTR_ADD(r1.num, r2.num)
+      case ("SUB", r1: OpRegister, r2: OpRegister) => INSTR_SUB(r1.num, r2.num)
+      case ("CMP", r1: OpRegister, r2: OpRegister) => INSTR_CMP(r1.num, r2.num)
+      case ("AND", r1: OpRegister, r2: OpRegister) => INSTR_AND(r1.num, r2.num)
+      case ("OR", r1: OpRegister, r2: OpRegister) => INSTR_OR(r1.num, r2.num)
+      case ("XOR", r1: OpRegister, r2: OpRegister) => INSTR_XOR(r1.num, r2.num)
+
+  private def decodeALU1(mnemonic: String, op1: Operand): Instruction =
+    (mnemonic, op1) match
+      case ("INC", r: OpRegister) => INSTR_INC(r.num)
+      case ("DEC", r: OpRegister) => INSTR_DEC(r.num)
+  
   private def LD: Parser[Instruction] =
     ("LDNZ" | "LDZ" | "LD") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeLD(m,op1,op2) }
 
@@ -97,7 +111,14 @@ trait InstructionParser extends BaseParser[Instruction]:
   private def IN: Parser[Instruction] =
     ("INNZ" | "INZ" | "IN") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeIN(m, op1, op2) }
 
-  def instruction: Parser[Instruction] = LDA | LD | JMP | OUT | IN
+  private def ALU2: Parser[Instruction] =
+    ("ADD" | "SUB" | "CMP" | "AND" | "OR" | "XOR") ~ operand ~ operand ^^ { case m ~ op1 ~ op2 => decodeALU2(m, op1, op2) }
+
+  private def ALU1: Parser[Instruction] =
+    ("INC" | "DEC") ~ operand ^^ { case m ~ op => decodeALU1(m, op) }
+
+  def instruction: Parser[Instruction] = LDA | LD | JMP | OUT | IN | ALU2 | ALU1
 
 class LineParser extends BaseParser[Instruction] with InstructionParser:
   override def result: Parser[Instruction] = instruction
+    
