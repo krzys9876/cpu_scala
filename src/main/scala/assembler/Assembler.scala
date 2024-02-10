@@ -21,52 +21,43 @@ case class Mnemonic2(name: String) extends Token
 case class Operand(name: String) extends Token:
   def replace(map: Map[Operand, Operand]): Operand = map.getOrElse(this,this)
 
-trait Line extends InstructionFlag:
+trait Line:
   lazy val operands: Vector[Operand] = Vector()
   def replaceSymbols(map: Map[Operand, Operand]): Line = this
   def hasSymbols(map: Map[Operand, Operand]): Boolean = false
   lazy val size: Int = 0
 
-trait InstructionFlag:
-  lazy val isInstruction: Boolean
-
-trait IsInstruction extends InstructionFlag:
-  override lazy val isInstruction: Boolean = true
-trait IsKeyword extends InstructionFlag:
-  override lazy val isInstruction: Boolean = false
-
-
-case class EmptyLine() extends Line with IsKeyword:
+case class EmptyLine() extends Line:
   override def toString: String = "[]"
 
-case class LabelLine(label: Label) extends Line with IsKeyword:
+case class LabelLine(label: Label) extends Line:
   override def toString: String = f"${label.name}"
 
-case class DataLine(value: Vector[Operand]) extends Line with IsKeyword:
+case class DataLine(value: Vector[Operand]) extends Line:
   override lazy val operands: Vector[Operand] = value
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(value = value.map(_.replace(map)))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))
   override def toString: String = f".DATA ${value.map(_.name).mkString(",")}"
 
-case class SymbolLine(symbol: Operand, value: Operand) extends Line with IsKeyword:
+case class SymbolLine(symbol: Operand, value: Operand) extends Line:
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(value = value.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == value)
   override def toString: String = f".SYMBOL ${symbol.name} = ${value.name}"
 
-case class OrgLine(address: Operand) extends Line with IsKeyword:
+case class OrgLine(address: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(address)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(address = address.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == address)
   override def toString: String = f".ORG ${address.name}"
 
-case class Instruction0Line(mnemonic: Mnemonic0) extends Line with IsInstruction:
+case class Instruction0Line(mnemonic: Mnemonic0) extends Line:
   override lazy val size: Int = mnemonic.name match
     case "RET" => 3
     case _ => 1
   override def toString: String = f"${mnemonic.name}"
 
-case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line with IsInstruction:
+case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(oper)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(oper = oper.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == oper)
@@ -77,7 +68,7 @@ case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line wit
     case _ => 1
   override def toString: String = f"${mnemonic.name} ${oper.name}"
 
-case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line with IsInstruction:
+case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
   override lazy val operands: Vector[Operand] = Vector(oper1, oper2)
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(oper1 = oper1.replace(map), oper2 = oper2.replace(map))
@@ -132,7 +123,9 @@ case class AddressedLine(address: Int, line: Line, origLine: InputLine):
 
 case class AtomicLine(address: Int, line: Line, origLine: AddressedLine):
   override def toString: String =
-    val lineStr = if(line.isInstruction) line.toString else f"[${line.toString}]"
+    val lineStr = line match
+      case OrgLine(_) | LabelLine(_) | SymbolLine(_,_) => f"[${line.toString}]"
+      case _=> line.toString
     f"0x$address%04X $lineStr | ${origLine.toString}"
 
 case class MachineCodeLine(address: Int, instruction: Instruction, origLine: AtomicLine)

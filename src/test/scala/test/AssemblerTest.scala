@@ -168,6 +168,8 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
 
   private val program =
     """
+      |.ORG 0x000E
+      |.DATA V1,END
       |.ORG 0x0010
       |.SYMBOL V1=0x000F
       |.SYMBOL V2=0x0010
@@ -217,9 +219,10 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.symbols.get(Operand("V2")).contains(Operand("0x0010")))
       assert(assembler.symbols.get(Operand("V3")).contains(Operand("V2")))
       val replaced = assembler.withSymbolsReplaced.getOrElse(Vector())
-      assert(replaced(3).line == SymbolLine(Operand("V3"),Operand("0x0010")))
-      assert(replaced(5).line == Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
-      assert(replaced(6).line == Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
+      assert(replaced(1).line == DataLine(Vector(Operand("0x000F"),Operand("END"))))
+      assert(replaced(5).line == SymbolLine(Operand("V3"),Operand("0x0010")))
+      assert(replaced(7).line == Instruction2Line(Mnemonic2("LDR"),Operand("R5"),Operand("0x000F")))
+      assert(replaced(8).line == Instruction2Line(Mnemonic2("LDR"),Operand("R6"),Operand("0x0010")))
 
     Scenario("Replace nested symbols"):
       Given("a program with many nested levels of symbols")
@@ -256,7 +259,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.withAddress.isRight)
       val addressed = assembler.withAddress.getOrElse(Vector())
       // NOTE: all lines with assembler keywords (except for .DATA) or labels do not affect address
-      assert(addressed.map(_.address)==Vector(16,16,16,16,16,16,19,22,23,26,28,29,29,31))
+      assert(addressed.map(_.address)==Vector(14,14,16,16,16,16,16,16,19,22,23,26,28,29,29,31))
 
   Feature("replace labels with addresses"):
     Scenario("replace labels with addresses"):
@@ -266,7 +269,8 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       Then("addresses are calculated properly")
       assert(assembler.isValid)
       val labelsReplaced = assembler.withLabelsReplaced
-      assert(labelsReplaced(8).line == Instruction1Line(Mnemonic1("JMPIZ"),Operand(f"0x${29}%04X")))
+      assert(labelsReplaced(1).line == DataLine(Vector(Operand("0x000F"),Operand("0x001D"))))
+      assert(labelsReplaced(10).line == Instruction1Line(Mnemonic1("JMPIZ"),Operand(f"0x${29}%04X")))
 
 
   Feature("expand data lines"):
@@ -354,21 +358,21 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val assembler = Assembler(program)
       Then("input line are tracked up to final atomic lines")
       println(assembler.inputLines.mkString("\n"))
-      assert(assembler.inputLines.size==14)
+      assert(assembler.inputLines.size==16)
       assert(assembler.inputLines.map(_.num).min == 1)
-      assert(assembler.inputLines.map(_.num).max == 14)
+      assert(assembler.inputLines.map(_.num).max == 16)
       val parsed = assembler.parsedLines.getOrElse(Vector())
       println(parsed.mkString("\n"))
-      assert(parsed.size == 14)
+      assert(parsed.size == 16)
       val symbolsReplaced = assembler.withSymbolsReplaced.getOrElse(Vector())
       println(symbolsReplaced.mkString("\n"))
-      assert(symbolsReplaced.size == 14)
+      assert(symbolsReplaced.size == 16)
       val addressed = assembler.withAddress.getOrElse(Vector())
       println(addressed.mkString("\n"))
-      assert(addressed.size == 14)
+      assert(addressed.size == 16)
       val labelsReplaced = assembler.withLabelsReplaced
       println(labelsReplaced.mkString("\n"))
-      assert(labelsReplaced.size == 14)
+      assert(labelsReplaced.size == 16)
       val atomic = assembler.atomic
       println(atomic.mkString("\n"))
-      assert(atomic.size == 22)
+      assert(atomic.size == 25)
