@@ -21,60 +21,69 @@ case class Mnemonic2(name: String) extends Token
 case class Operand(name: String) extends Token:
   def replace(map: Map[Operand, Operand]): Operand = map.getOrElse(this,this)
 
-sealed trait Line:
+trait Line extends InstructionFlag:
   lazy val operands: Vector[Operand] = Vector()
   def replaceSymbols(map: Map[Operand, Operand]): Line = this
   def hasSymbols(map: Map[Operand, Operand]): Boolean = false
-  lazy val size: Short = 0
+  lazy val size: Int = 0
 
-case class EmptyLine() extends Line:
+trait InstructionFlag:
+  lazy val isInstruction: Boolean
+
+trait IsInstruction extends InstructionFlag:
+  override lazy val isInstruction: Boolean = true
+trait IsKeyword extends InstructionFlag:
+  override lazy val isInstruction: Boolean = false
+
+
+case class EmptyLine() extends Line with IsKeyword:
   override def toString: String = "[]"
 
-case class LabelLine(label: Label) extends Line:
+case class LabelLine(label: Label) extends Line with IsKeyword:
   override def toString: String = f"${label.name}"
 
-case class DataLine(value: Vector[Operand]) extends Line:
+case class DataLine(value: Vector[Operand]) extends Line with IsKeyword:
   override lazy val operands: Vector[Operand] = value
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(value = value.map(_.replace(map)))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))
   override def toString: String = f".DATA ${value.map(_.name).mkString(",")}"
 
-case class SymbolLine(symbol: Operand, value: Operand) extends Line:
+case class SymbolLine(symbol: Operand, value: Operand) extends Line with IsKeyword:
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(value = value.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == value)
   override def toString: String = f".SYMBOL ${symbol.name} = ${value.name}"
 
-case class OrgLine(address: Operand) extends Line:
+case class OrgLine(address: Operand) extends Line with IsKeyword:
   override lazy val operands: Vector[Operand] = Vector(address)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(address = address.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == address)
   override def toString: String = f".ORG ${address.name}"
 
-case class Instruction0Line(mnemonic: Mnemonic0) extends Line:
-  override lazy val size: Short = mnemonic.name match
+case class Instruction0Line(mnemonic: Mnemonic0) extends Line with IsInstruction:
+  override lazy val size: Int = mnemonic.name match
     case "RET" => 3
     case _ => 1
   override def toString: String = f"${mnemonic.name}"
 
-case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line:
+case class Instruction1Line(mnemonic: Mnemonic1, oper: Operand) extends Line with IsInstruction:
   override lazy val operands: Vector[Operand] = Vector(oper)
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(oper = oper.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = map.keys.exists(_ == oper)
-  override lazy val size: Short = mnemonic.name match
+  override lazy val size: Int = mnemonic.name match
     case "LDAZ" | "LDANZ" | "LDA" => 2
     case "CALL" => 7
     case "JMPIZ" | "JMPINZ" | "JMPI" => 3
     case _ => 1
   override def toString: String = f"${mnemonic.name} ${oper.name}"
 
-case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line:
+case class Instruction2Line(mnemonic: Mnemonic2, oper1: Operand, oper2: Operand) extends Line with IsInstruction:
   override lazy val operands: Vector[Operand] = Vector(oper1, oper2)
   override def replaceSymbols(map: Map[Operand, Operand]): Line =
     copy(oper1 = oper1.replace(map), oper2 = oper2.replace(map))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean =
     map.keys.exists(k => k == oper1 || k == oper2)
-  override lazy val size: Short = mnemonic.name match
+  override lazy val size: Int = mnemonic.name match
     case "LDRZ" | "LDRNZ" | "LDR" => 3
     case _ => 1
   override def toString: String = f"${mnemonic.name} ${oper1.name} ${oper2.name}"
@@ -119,18 +128,12 @@ case class AddressedLine(address: Int, line: Line, origLine: InputLine):
         (acc._1+1, acc._2 :+ AtomicLine(acc._1, DataLine(Vector(v)), this)))._2
       case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => Assembler.expand(this)
       case _ => toAtomicDefault
-
   override def toString: String = f"0x$address%04X ${line.toString} | ${origLine.toString}"
-
 
 case class AtomicLine(address: Int, line: Line, origLine: AddressedLine):
   override def toString: String =
-    val lineStr = if(isInstruction) line.toString else f"[${line.toString}]"
+    val lineStr = if(line.isInstruction) line.toString else f"[${line.toString}]"
     f"0x$address%04X $lineStr | ${origLine.toString}"
-    
-  def isInstruction: Boolean = line match
-      case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => true
-      case _ => false
 
 case class MachineCodeLine(address: Int, instruction: Instruction, origLine: AtomicLine)
 
@@ -141,7 +144,6 @@ case class ParsedLine(line: Line, origLine: InputLine):
   override def toString: String = f"${line.toString} | ${origLine.toString}"
 
 case class Assembler(input: String):
-
   // Make line numbers 1-based
   lazy val inputLines: Vector[InputLine] = input.strip().split("\n").toVector.zipWithIndex.map(l => InputLine(l._2 + 1, l._1))
 
@@ -191,8 +193,8 @@ case class Assembler(input: String):
   lazy val atomic: Vector[AtomicLine] =
     val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
-  
-  
+
+
   lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight
 
 object Assembler:
@@ -271,14 +273,9 @@ object Assembler:
 
   def expand(line: AddressedLine): Vector[AtomicLine] =
     line.line match
-      case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m)  =>
-        expandLDA(line)
-      case Instruction2Line(Mnemonic2(m),_,_) if List("LDR","LDRZ","LDRNZ").contains(m)  =>
-        expandLDR(line)
-      case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m)  =>
-        expandJMPI(line)
-      case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m)  =>
-        expandCALL(line)
-      case Instruction0Line(Mnemonic0(m)) if List("RET").contains(m)  =>
-        expandRET(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m) => expandLDA(line)
+      case Instruction2Line(Mnemonic2(m),_,_) if List("LDR","LDRZ","LDRNZ").contains(m) => expandLDR(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m) => expandJMPI(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m) => expandCALL(line)
+      case Instruction0Line(Mnemonic0(m)) if List("RET").contains(m) => expandRET(line)
       case _ => expandDefault(line)
