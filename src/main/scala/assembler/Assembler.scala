@@ -29,7 +29,7 @@ sealed trait Line:
 
 case class EmptyLine() extends Line:
   override def toString: String = "[]"
-  
+
 case class LabelLine(label: Label) extends Line:
   override def toString: String = f"${label.name}"
 
@@ -109,7 +109,7 @@ object Line:
         if !line.hasSymbols(map) then Right(line)
         else replaceSymbols(line.replaceSymbols(map), map, level - 1)
 
-case class AddressedLine(address: Int, line: Line):
+case class AddressedLine(address: Int, line: Line, origLine: InputLine):
   private def toAtomicDefault: Vector[AtomicLine] = Vector(AtomicLine(address, line, this))
 
   def toAtomic: Vector[AtomicLine] =
@@ -120,9 +120,19 @@ case class AddressedLine(address: Int, line: Line):
       case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => Assembler.expand(this)
       case _ => toAtomicDefault
 
+  override def toString: String = f"0x$address%04X ${line.toString} | ${origLine.toString}"
 
 
-case class AtomicLine(address: Int, line: Line, origLine: AddressedLine)
+case class AtomicLine(address: Int, line: Line, origLine: AddressedLine):
+  override def toString: String =
+    val lineStr = if(isInstruction) line.toString else f"[${line.toString}]"
+    f"0x$address%04X $lineStr | ${origLine.toString}"
+    
+  def isInstruction: Boolean = line match
+      case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => true
+      case _ => false
+
+case class MachineCodeLine(address: Int, instruction: Instruction, origLine: AtomicLine)
 
 case class InputLine(num: Int, line: String):
   override def toString: String = f"$num%04d $line"
@@ -160,9 +170,9 @@ case class Assembler(input: String):
         case Right(accumulator) =>
           line.line match
             case OrgLine(addressText) => Assembler.getValue(addressText) match
-              case Right(address) => Right((address+line.line.size, accumulator._2 :+ AddressedLine(address, line.line)))
+              case Right(address) => Right((address+line.line.size, accumulator._2 :+ AddressedLine(address, line.line, line.origLine)))
               case Left(message) => Left(message)
-            case _ => Right((accumulator._1+line.line.size, accumulator._2 :+ AddressedLine(accumulator._1, line.line))))
+            case _ => Right((accumulator._1+line.line.size, accumulator._2 :+ AddressedLine(accumulator._1, line.line, line.origLine))))
     calculatedAddressed match
       case Left(message) => Left(message)
       case Right((_, lines)) => Right(lines)
@@ -178,10 +188,11 @@ case class Assembler(input: String):
     // replacing labels is similar to replacing symbols (labels cannot be nested but it doesn't matter)
     withAddress.getOrElse(Vector()).map(l => l.copy(line = Line.replaceSymbols(l.line,labels).getOrElse(l.line)))
 
-  lazy val instructions: Vector[AtomicLine] =
+  lazy val atomic: Vector[AtomicLine] =
     val toConvert = withLabelsReplaced
     toConvert.flatMap(_.toAtomic)
-
+  
+  
   lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight
 
 object Assembler:
@@ -226,7 +237,7 @@ object Assembler:
           case "LDR" => ("LDA", "LD")
           case "LDRZ" => ("LDAZ", "LDZ")
           case "LDRNZ" => ("LDANZ", "LDNZ")
-        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+
+        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v), line.origLine)) :+
         AtomicLine(line.address+2, Instruction2Line(Mnemonic2(mnemonicR), Operand("R3"), reg), line)
       case _ => expandDefault(line)
 
@@ -237,7 +248,7 @@ object Assembler:
           case "JMPI" => ("LDA", "JMP")
           case "JMPIZ" => ("LDAZ", "JMPZ")
           case "JMPINZ" => ("LDANZ", "JMPNZ")
-        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v))) :+
+        expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1(mnemonicA), v), line.origLine)) :+
           AtomicLine(line.address + 2, Instruction1Line(Mnemonic1(mnemonicJ), Operand("R3")), line)
       case _ => expandDefault(line)
 
@@ -245,9 +256,9 @@ object Assembler:
     line.line match
       case Instruction1Line(Mnemonic1("CALL"), v) =>
         Vector(AtomicLine(line.address, Instruction1Line(Mnemonic1("DEC"), Operand("R1")), line)) ++
-          expandLDA(AddressedLine(line.address+1, Instruction1Line(Mnemonic1("LDA"), Operand(f"0x${line.address+7}%04X")))) ++
+          expandLDA(AddressedLine(line.address+1, Instruction1Line(Mnemonic1("LDA"), Operand(f"0x${line.address+7}%04X")), line.origLine)) ++
           Vector(AtomicLine(line.address + 3, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand("M1")), line)) ++
-          expandJMPI(AddressedLine(line.address + 4, Instruction1Line(Mnemonic1("JMPI"), v)))
+          expandJMPI(AddressedLine(line.address + 4, Instruction1Line(Mnemonic1("JMPI"), v), line.origLine))
       case _ => expandDefault(line)
 
   def expandRET(line: AddressedLine): Vector[AtomicLine] =

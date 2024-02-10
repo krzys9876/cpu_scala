@@ -276,7 +276,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(dataProgram)
       Then("data list is converted to series of single lines")
-      val instructions = assembler.instructions
+      val instructions = assembler.atomic
       assert(instructions.size==4)
       assert(instructions.slice(1,4).flatMap(_.line.operands).map(_.name) == Vector("0x0101","0x0102","0x0103"))
       assert(instructions.map(_.address) == Vector(0x0010,0x0010,0x0011,0x0012))
@@ -288,7 +288,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldaProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,3)
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1,3)
       assert(instructions == Vector(
         (0x10, Instruction1Line(Mnemonic1("LDAL"), Operand("0x34"))),
         (0x11, Instruction1Line(Mnemonic1("LDAH"), Operand("0x12")))))
@@ -299,7 +299,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,4)
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1,4)
       assert(instructions == Vector(
         (0x10, Instruction1Line(Mnemonic1("LDALNZ"), Operand("0x45"))),
         (0x11, Instruction1Line(Mnemonic1("LDAHNZ"), Operand("0x23"))),
@@ -311,7 +311,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1,4)
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1,4)
       assert(instructions == Vector(
         (0x10, Instruction1Line(Mnemonic1("LDALZ"), Operand("0x67"))),
         (0x11, Instruction1Line(Mnemonic1("LDAHZ"), Operand("0x45"))),
@@ -323,7 +323,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1, 8)
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 8)
       println(instructions.mkString("\n"))
       assert(instructions == Vector(
         (0x10, Instruction1Line(Mnemonic1("DEC"), Operand("R1"))),
@@ -340,13 +340,13 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       When("processed")
       val assembler = Assembler(ldrProgram)
       Then("macros are converted to series of instructions")
-      val instructions = assembler.instructions.map(l => (l.address, l.line)).slice(1, 4)
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 4)
       println(instructions.mkString("\n"))
       assert(instructions == Vector(
         (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3"))),
         (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1"))),
         (0x12, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))
-  
+
   Feature("track input lines through all assembly stages"):
     Scenario("track input lines through all assembly stages"):
       Given("a program with macro")
@@ -357,5 +357,18 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       assert(assembler.inputLines.size==14)
       assert(assembler.inputLines.map(_.num).min == 1)
       assert(assembler.inputLines.map(_.num).max == 14)
-      println(assembler.inputLines.mkString("\n"))
-    
+      val parsed = assembler.parsedLines.getOrElse(Vector())
+      println(parsed.mkString("\n"))
+      assert(parsed.size == 14)
+      val symbolsReplaced = assembler.withSymbolsReplaced.getOrElse(Vector())
+      println(symbolsReplaced.mkString("\n"))
+      assert(symbolsReplaced.size == 14)
+      val addressed = assembler.withAddress.getOrElse(Vector())
+      println(addressed.mkString("\n"))
+      assert(addressed.size == 14)
+      val labelsReplaced = assembler.withLabelsReplaced
+      println(labelsReplaced.mkString("\n"))
+      assert(labelsReplaced.size == 14)
+      val atomic = assembler.atomic
+      println(atomic.mkString("\n"))
+      assert(atomic.size == 22)
