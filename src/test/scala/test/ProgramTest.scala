@@ -87,7 +87,32 @@ class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
         // END
       When("executed")
       val cpuExec = cpuProg handleNext 4+5*4+3
-      Then("call and return is reflected in register state")
+      Then("call and return are reflected in register state")
       assert(cpuExec.register(0xA) == 0) // counter = 0
       assert(cpuExec.register(0xB) == 4) // variable = 4
       assert(cpuExec.pc == 0x000C) // next address after end of the program
+      
+  Feature("Push register to- and pop from stack"):
+    Scenario("Push a register to stack and pop a value to different register"):
+      Given("a program with push and pop")
+      val cpuInit = TestUtils.createResetCpu
+      assert(cpuInit.register(0x1) == 0) // stack is set to
+      assert(cpuInit.register(0x8) == 0)
+      assert(cpuInit.register(0x9) == 0)
+      val cpuProg = cpuInit
+        .writeMemoryMulti(0x0000, MACRO.LD_R(0x1234.toShort, 8)) // init register 8
+        .writeMemory(0x0003, INSTR_DEC_SP().value)
+        .writeMemory(0x0004, INSTR_LD_RM(8, 1).value)
+        .writeMemoryMulti(0x0005, MACRO.LD_R(0xAAAA.toShort, 8)) // reset register 8
+        .writeMemory(0x0008, INSTR_LD_MR(9, 1).value)
+        .writeMemory(0x0009, INSTR_INC_SP().value)
+      When("executed")
+      val cpuExec = cpuProg handleNext 10
+      Then("push and pop are reflected in register state")
+      assert(cpuExec.register(0x8) == 0xAAAA.toShort)
+      assert(cpuExec.register(0x9) == 0x1234.toShort)
+      assert(cpuExec.register(0x1) == 0x0000.toShort)
+      assert(cpuExec.memory(0xFFFF) == 0x1234.toShort)
+            
+      
+          
