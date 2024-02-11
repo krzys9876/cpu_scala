@@ -7,6 +7,9 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
+/**
+ * Parse a single line that contains a line in the canonical form (no macros) to generate a build-in function and machine code 
+ */
 class LineParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyChecks:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))

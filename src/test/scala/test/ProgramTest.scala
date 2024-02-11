@@ -4,6 +4,9 @@ package test
 import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 
+/**
+ * Test more complex routines and macros using built-in functions 
+ */
 class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
   Feature("Call and return"):
     Scenario("Call a subroutine and return to correct address"):

@@ -9,6 +9,9 @@ import org.scalatest.GivenWhenThen
 import org.scalatest.featurespec.AnyFeatureSpec
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 
+/**
+ * Parse a program from an input text to machine code
+ */
 class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with GivenWhenThen:
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 50, maxDiscardedFactor = 30.0, minSize = PosZInt(100))
