@@ -279,9 +279,8 @@ object Assembler:
   def expandCALL(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1("CALL"), v) =>
-        Vector(AtomicLine(line.address, Instruction1Line(Mnemonic1("DEC"), Operand("R1")), line)) ++
-          expandLDA(AddressedLine(line.address+1, Instruction1Line(Mnemonic1("LDA"), Operand(f"0x${line.address+7}%04X")), line.origLine)) ++
-          Vector(AtomicLine(line.address + 3, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand("M1")), line)) ++
+          expandLDA(AddressedLine(line.address, Instruction1Line(Mnemonic1("LDA"), Operand(f"0x${line.address+7}%04X")), line.origLine)) ++
+          expandPUSH(AddressedLine(line.address + 2, Instruction1Line(Mnemonic1("PUSH"), Operand("R3")), line.origLine)) ++
           expandJMPI(AddressedLine(line.address + 4, Instruction1Line(Mnemonic1("JMPI"), v), line.origLine))
       case _ => expandDefault(line)
 
@@ -293,11 +292,19 @@ object Assembler:
           AtomicLine(line.address + 2, Instruction1Line(Mnemonic1("JMP"), Operand("R3")), line))
       case _ => expandDefault(line)
 
+  def expandPUSH(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction1Line(Mnemonic1("PUSH"), r) =>
+        Vector(AtomicLine(line.address, Instruction1Line(Mnemonic1("DEC"), Operand("R1")), line),
+          AtomicLine(line.address + 1, Instruction2Line(Mnemonic2("LD"), r, Operand("M1")), line))
+      case _ => expandDefault(line)
+
   def expand(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m) => expandLDA(line)
       case Instruction2Line(Mnemonic2(m),_,_) if List("LDR","LDRZ","LDRNZ").contains(m) => expandLDR(line)
       case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m) => expandJMPI(line)
       case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m) => expandCALL(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("PUSH").contains(m) => expandPUSH(line)
       case Instruction0Line(Mnemonic0(m)) if List("RET").contains(m) => expandRET(line)
       case _ => expandDefault(line)

@@ -330,9 +330,9 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 8)
       println(instructions.mkString("\n"))
       assert(instructions == Vector(
-        (0x10, Instruction1Line(Mnemonic1("DEC"), Operand("R1"))),
-        (0x11, Instruction1Line(Mnemonic1("LDAL"), Operand("0x17"))),
-        (0x12, Instruction1Line(Mnemonic1("LDAH"), Operand("0x00"))),
+        (0x10, Instruction1Line(Mnemonic1("LDAL"), Operand("0x17"))),
+        (0x11, Instruction1Line(Mnemonic1("LDAH"), Operand("0x00"))),
+        (0x12, Instruction1Line(Mnemonic1("DEC"), Operand("R1"))),
         (0x13, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand("M1"))),
         (0x14, Instruction1Line(Mnemonic1("LDAL"), Operand("0x78"))),
         (0x15, Instruction1Line(Mnemonic1("LDAH"), Operand("0x56"))),
@@ -350,6 +350,19 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
         (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3"))),
         (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1"))),
         (0x12, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))
+
+    Scenario("expand PUSH"):
+      Given("a program with macro")
+      val pushProgram = ".ORG 0x0010\nPUSH R5"
+      When("processed")
+      val assembler = Assembler(pushProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 3)
+      println(instructions.mkString("\n"))
+      assert(instructions == Vector(
+        (0x10, Instruction1Line(Mnemonic1("DEC"), Operand("R1"))),
+        (0x11, Instruction2Line(Mnemonic2("LD"), Operand("R5"), Operand("M1")))))
+
 
   Feature("track input lines through all assembly stages"):
     Scenario("track input lines through all assembly stages"):
