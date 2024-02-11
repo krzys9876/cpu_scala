@@ -118,17 +118,18 @@ object MACRO:
   def LD_R(imm: Short, reg: Short): Vector[Short] = // 3 steps
     LD_A(imm) :+ INSTR_LD_RR(3,reg).value
   def RET: Vector[Short] = // 3 steps
-    Vector(INSTR_LD_MR(3, 1).value, // LD (SP) => A - pop return address from stack
-      INSTR_INC_SP().value,
-      INSTR_JMP_A().value) // LD A => PC - jump to return address
+    POP(3.toShort) :+ INSTR_JMP_A().value // pop return address from stack to accumulator and then jump to accumulator content
   def CALL(baseAddress: Short, callAddress: Short): Vector[Short] = // 7 steps
-    Vector(INSTR_DEC_SP().value) ++ // DEC SP
-      MACRO.LD_A((baseAddress + 7).toShort) ++ // return address to A (determined at compile time)
-      Vector(INSTR_LD_RM(3, 1).value) ++ // LD A => (SP) - push return address to stack
-      MACRO.JMPI(callAddress) // call address
+    LD_A((baseAddress + 7).toShort) ++ // return address to A (determined at compile time)
+    PUSH(3.toShort) ++ // push A 
+    JMPI(callAddress) // call address
   def JMPI(targetAddress: Short): Vector[Short] = // 3 steps
     LD_A(targetAddress) ++ Vector(INSTR_JMP_A().value)
   def JMPIZ(targetAddress: Short): Vector[Short] = // 3 steps
     LD_A(targetAddress) ++ Vector(INSTR_JMPZ_A().value)
   def JMPINZ(targetAddress: Short): Vector[Short] = // 3 steps
     LD_A(targetAddress) ++ Vector(INSTR_JMPNZ_A().value)
+  def PUSH(reg: Short): Vector[Short] = // 2 steps
+    Vector(INSTR_DEC_SP().value, INSTR_LD_RM(reg, 1).value) // dec SP and then load register content to memory at SP
+  def POP(reg: Short): Vector[Short] = // 2 steps
+    Vector(INSTR_LD_MR(reg, 1).value, INSTR_INC_SP().value) // load memory at SP to register and then inc SP

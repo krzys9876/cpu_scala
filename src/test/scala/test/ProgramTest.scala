@@ -101,11 +101,9 @@ class ProgramTest extends AnyFeatureSpec with GivenWhenThen:
       assert(cpuInit.register(0x9) == 0)
       val cpuProg = cpuInit
         .writeMemoryMulti(0x0000, MACRO.LD_R(0x1234.toShort, 8)) // init register 8
-        .writeMemory(0x0003, INSTR_DEC_SP().value)
-        .writeMemory(0x0004, INSTR_LD_RM(8, 1).value)
-        .writeMemoryMulti(0x0005, MACRO.LD_R(0xAAAA.toShort, 8)) // reset register 8
-        .writeMemory(0x0008, INSTR_LD_MR(9, 1).value)
-        .writeMemory(0x0009, INSTR_INC_SP().value)
+        .writeMemoryMulti(0x0003, MACRO.PUSH(8.toShort)) // push register 8
+        .writeMemoryMulti(0x0005, MACRO.LD_R(0xAAAA.toShort, 8)) // reset register 8 to overwrite value
+        .writeMemoryMulti(0x0008, MACRO.POP(9.toShort)) // pop register 9
       When("executed")
       val cpuExec = cpuProg handleNext 10
       Then("push and pop are reflected in register state")
