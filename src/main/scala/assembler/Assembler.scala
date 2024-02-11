@@ -287,9 +287,8 @@ object Assembler:
   def expandRET(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction0Line(Mnemonic0("RET")) =>
-        Vector(AtomicLine(line.address, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3")), line),
-          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("INC"), Operand("R1")), line),
-          AtomicLine(line.address + 2, Instruction1Line(Mnemonic1("JMP"), Operand("R3")), line))
+        expandPOP(AddressedLine(line.address, Instruction1Line(Mnemonic1("POP"), Operand("R3")), line.origLine)) :+
+          AtomicLine(line.address + 2, Instruction1Line(Mnemonic1("JMP"), Operand("R3")), line)
       case _ => expandDefault(line)
 
   def expandPUSH(line: AddressedLine): Vector[AtomicLine] =
@@ -299,6 +298,13 @@ object Assembler:
           AtomicLine(line.address + 1, Instruction2Line(Mnemonic2("LD"), r, Operand("M1")), line))
       case _ => expandDefault(line)
 
+  def expandPOP(line: AddressedLine): Vector[AtomicLine] =
+    line.line match
+      case Instruction1Line(Mnemonic1("POP"), r) =>
+        Vector(AtomicLine(line.address, Instruction2Line(Mnemonic2("LD"), Operand("M1"), r), line),
+          AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("INC"), Operand("R1")), line))
+      case _ => expandDefault(line)
+
   def expand(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1(m),_) if List("LDA","LDAZ","LDANZ").contains(m) => expandLDA(line)
@@ -306,5 +312,6 @@ object Assembler:
       case Instruction1Line(Mnemonic1(m),_) if List("JMPI","JMPIZ","JMPINZ").contains(m) => expandJMPI(line)
       case Instruction1Line(Mnemonic1(m),_) if List("CALL").contains(m) => expandCALL(line)
       case Instruction1Line(Mnemonic1(m),_) if List("PUSH").contains(m) => expandPUSH(line)
+      case Instruction1Line(Mnemonic1(m),_) if List("POP").contains(m) => expandPOP(line)
       case Instruction0Line(Mnemonic0(m)) if List("RET").contains(m) => expandRET(line)
       case _ => expandDefault(line)

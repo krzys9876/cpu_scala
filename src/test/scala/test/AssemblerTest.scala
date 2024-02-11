@@ -363,6 +363,18 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
         (0x10, Instruction1Line(Mnemonic1("DEC"), Operand("R1"))),
         (0x11, Instruction2Line(Mnemonic2("LD"), Operand("R5"), Operand("M1")))))
 
+    Scenario("expand POP"):
+      Given("a program with macro")
+      val popProgram = ".ORG 0x0010\nPOP R6"
+      When("processed")
+      val assembler = Assembler(popProgram)
+      Then("macros are converted to series of instructions")
+      val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 3)
+      println(instructions.mkString("\n"))
+      assert(instructions == Vector(
+        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R6"))),
+        (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1")))))
+
 
   Feature("track input lines through all assembly stages"):
     Scenario("track input lines through all assembly stages"):
