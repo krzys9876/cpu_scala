@@ -53,6 +53,10 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
       Given("a CPU in random state with LD r1,(r2) as next instruction")
       doTestLDx_RM(TestUtils.createRandomStateCpuWithMemory(),INSTR_LD_RM.apply)
 
+    Scenario("output register to port"):
+      Given("a CPU in random state with OUT r,p as next instruction")
+      doTestLDx_RO(TestUtils.createRandomStateCpuWithMemory(), INSTR_LD_RO.apply)
+
   Feature("LDZ/LDNZ"):
     Scenario("load immediate (low) when Z flag matches instruction condition"):
       Given("a CPU in random state with LD(N)Z AL,X as next instruction")
@@ -289,6 +293,19 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
           Then("memory at address from register 2 is loaded with register 1")
           //println(f"(R1)($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} ${cpuAfter.memory(cpuAfter.register(r2))}  R2 before: ${cpuBefore.memory(cpuBefore.register(r2))}")
           assert(cpuAfter.memory(r2Before) == r1Before)
+          And("PC is increased by 1")
+          assert(cpuAfter.pc == (pc + 1).toShort)
+
+  private def doTestLDx_RO(cpuStart: Cpu, instr: (Short, Short) => Instruction): Unit =
+    forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.portGen):
+      (pc, r, p) =>
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r, p).value)
+          val rBefore = cpuBefore.register(r) // this is to copy value in case one of registers is PC (it is increased)
+          When("executed")
+          val cpuAfter = cpuBefore.handleNext
+          Then("contents of the register is send to output port")
+          //println(f"(R1)($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} ${cpuAfter.memory(cpuAfter.register(r2))}  R2 before: ${cpuBefore.memory(cpuBefore.register(r2))}")
+          assert(cpuAfter.outputFile.lastValue == rBefore)
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
 

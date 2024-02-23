@@ -83,7 +83,7 @@ object CpuHandlerImmutable extends CpuHandler:
       case REG2MEMORY => // reg=>(addr)
         cpu.writeMemory(cpu.register(instr.addr), cpu.register(instr.reg)).incPC
       case OUTPUT_REG => // reg=>port
-        cpu.output(instr.port, cpu.register(instr.reg))
+        cpu.output(instr.port, cpu.register(instr.reg)).incPC
       case _ => throw new IllegalArgumentException(f"Illegal LD instruction: ${instr.value}%04X at ${cpu.pc}%04X")  //cpu.incPC
 
   private def handleALU(cpu: Cpu, instr: Instruction): Cpu =
