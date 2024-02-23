@@ -24,10 +24,12 @@ def main(args: String*): Unit =
   val program = lines.mkString("\n")
   val assembler = Assembler(program)
 
-  assembler.machineCode match
-    case Right(lines) => println(lines.mkString("\n"))
-    case Left(message) => println(f"Error occured while parsing the program:\n$message")
-      scala.sys.exit(1)
+  if(!assembler.isValid)
+    println(assembler.errorMessage)
+    scala.sys.exit(1)
+
+  val code = assembler.machineCode.getOrElse(Vector())
+  println(code.mkString("\n"))
 
   // clear screen
   /*print(27.toChar)
@@ -41,8 +43,7 @@ def main(args: String*): Unit =
   print("H")
 */
   val cpu = CpuHandlerImmutable.create
-  val withProgram = assembler.machineCode.getOrElse(Vector())
-    .foldLeft(cpu)((cpuProgrammed,line)=>
+  val withProgram = code.foldLeft(cpu)((cpuProgrammed,line)=>
       cpuProgrammed.writeMemory(line.address,line.value.getOrElse(0.toShort)))
 
   val after = withProgram.handleNext(progArgs.programSteps)
@@ -57,7 +58,7 @@ class Args(args: Array[String]) extends ArgsAsClass(args) {
   parse()
 
   lazy val programSteps:Long =
-    if(steps() > 0) steps 
-    else 
+    if(steps() > 0) steps
+    else
       if(stepsM() <= 0.0 || stepsM() > (Long.MaxValue/1000000)) Long.MaxValue else (stepsM()*1000000.0).toLong
 }

@@ -7,7 +7,7 @@ import scala.util.parsing.combinator.JavaTokenParsers
 
 object TokenParser:
   val mnemonic0list: List[String] = List("NOP", "RET", "JMPAZ", "JMPANZ", "JMPA")
-  val mnemonic1list: List[String] = List("LDAZ", "LDANZ", "LDA", "CALL", "JMPIZ", "JMPINZ", "JMPI", "INC", "DEC", "PUSH", "POP")
+  val mnemonic1list: List[String] = List("LDAZ", "LDANZ", "LDAL", "LDAH", "LDA", "CALL", "JMPIZ", "JMPINZ", "JMPI", "INC", "DEC", "PUSH", "POP")
   val mnemonic2list: List[String] = List("LDRZ", "LDRNZ", "LDR", "LDZ", "LDNZ", "LD", "ADD", "SUB", "AND", "OR", "CMP", "IN", "OUT")
 
 trait TokenParser extends JavaTokenParsers:

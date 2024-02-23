@@ -215,9 +215,19 @@ case class Assembler(input: String):
   lazy val machineCode: Either[String, Vector[MachineCodeLine]] =
     val mCode = atomic.map(_.toMachineCode)
     Assembler.reduce(mCode)
+  
+  lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight && machineCode.isRight
 
+  lazy val errorMessage: String = 
+    if(isValid) "" 
+    else parsedLines match
+      case Left(message) => f"Error occured in step 1: parsing:\n$message"
+      case _ => withAddress match
+        case Left(message) => f"Error occured in step 2: symbol decoding:\n$message"
+        case _ => machineCode match
+          case Left(message) => f"Error occured in step 3: machine code generation:\n$message"
+          case _ => "Unexpected error"
 
-  lazy val isValid: Boolean = parsedLines.isRight && withSymbolsReplaced.isRight
 
 object Assembler:
   def reduce[T](in: Vector[Either[String,T]]): Either[String, Vector[T]] = in
