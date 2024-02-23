@@ -30,7 +30,7 @@ def main(args: String*): Unit =
       scala.sys.exit(1)
 
   // clear screen
-  print(27.toChar)
+  /*print(27.toChar)
   print("[")
   print("2")
   print("J")
@@ -39,4 +39,11 @@ def main(args: String*): Unit =
   print(27.toChar)
   print("[")
   print("H")
+*/
+  val cpu = CpuHandlerImmutable.create
+  val withProgram = assembler.machineCode.getOrElse(Vector())
+    .foldLeft(cpu)((cpuProgrammed,line)=>
+      cpuProgrammed.writeMemory(line.address,line.value.getOrElse(0.toShort)))
 
+  val after = withProgram.handleNext(100)
+  println("\n"+after.register.toString)
