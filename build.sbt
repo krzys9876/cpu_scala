@@ -11,6 +11,6 @@ lazy val root = (project in file("."))
 libraryDependencies ++= Seq (
   "org.scala-lang.modules" %% "scala-parser-combinators" % "2.3.0",
   ("io.github.krzys9876" %% "command-line-reader" % "1.1.0").cross(CrossVersion.for3Use2_13),
-  "org.scalatest" %% "scalatest" % "3.2.15" % Test,
-  "org.scalatestplus" %% "scalacheck-1-17" % "3.2.16.0" % Test
+  "org.scalatest" %% "scalatest" % "3.2.17" % Test,
+  "org.scalatestplus" %% "scalacheck-1-17" % "3.2.17.0" % Test
 )
