@@ -1,43 +1,44 @@
 package org.kr.cpu
 
-sealed trait Opcode:
-  def code: Int
+sealed trait Opcode(val code: Int):
   def isLegal: Boolean = true
-  def isAlu: Boolean = false
+  val isAlu: Boolean = false
 
-case object LD extends Opcode {override val code:Int=0x0 }
-case object LDZ extends Opcode {override val code:Int=0x6 }
-case object LDNZ extends Opcode {override val code:Int=0x7 }
+case object LD extends Opcode(0x0)
+case object LDZ extends Opcode(0x6)
+case object LDNZ extends Opcode(0x7)
 
-case object ADD extends Opcode {override val code:Int=0x8; override val isAlu:Boolean = true}
-case object SUB extends Opcode {override val code:Int=0x9; override val isAlu:Boolean = true}
-case object INC extends Opcode {override val code:Int=0xA; override val isAlu:Boolean = true}
-case object DEC extends Opcode {override val code:Int=0xB; override val isAlu:Boolean = true}
-case object CMP extends Opcode {override val code:Int=0xC; override val isAlu:Boolean = true}
-case object AND extends Opcode {override val code:Int=0xD; override val isAlu:Boolean = true}
-case object OR extends Opcode {override val code:Int=0xE; override val isAlu:Boolean = true}
-case object XOR extends Opcode {override val code:Int=0xF; override val isAlu:Boolean = true}
+trait AluOpcode extends Opcode:
+  override val isAlu: Boolean = true
 
-case class OpcodeIllegal(override val code:Int) extends Opcode:
+case object ADD extends Opcode(0x8) with AluOpcode
+case object SUB extends Opcode(0x9) with AluOpcode
+case object INC extends Opcode(0xA) with AluOpcode
+case object DEC extends Opcode(0xB) with AluOpcode
+case object CMP extends Opcode(0xC) with AluOpcode
+case object AND extends Opcode(0xD) with AluOpcode
+case object OR extends Opcode(0xE) with AluOpcode
+case object XOR extends Opcode(0xF) with AluOpcode
+
+case class OpcodeIllegal(override val code:Int) extends Opcode(code):
   override val isLegal: Boolean = false
 
 object Opcode:
   val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),OpcodeIllegal(3),OpcodeIllegal(4),OpcodeIllegal(5),LDZ,LDNZ,ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
 
-sealed trait AddressMode:
-  def code: Int
-  def isLegal: Boolean = true
+sealed trait AddressMode(val code: Int):
+  val isLegal: Boolean = true
 
-case object NOP_MODE extends AddressMode {override val code:Int=0 }
-case object IMMEDIATE_LOW extends AddressMode {override val code:Int=0x8 }
-case object IMMEDIATE_HIGH extends AddressMode {override val code:Int=0x9 }
-case object REGISTERS extends AddressMode {override val code:Int=0x3 }
-case object REG2MEMORY extends AddressMode {override val code:Int=0x4 }
-case object MEMORY2REG extends AddressMode {override val code:Int=0x5 }
-case object OUTPUT_REG extends AddressMode {override val code:Int=0x6 }
-case object INPUT_REG extends AddressMode {override val code:Int=0x7 }
+case object NOP_MODE extends AddressMode(0)
+case object IMMEDIATE_LOW extends AddressMode(0x8)
+case object IMMEDIATE_HIGH extends AddressMode(0x9)
+case object REGISTERS extends AddressMode(0x3)
+case object REG2MEMORY extends AddressMode(0x4)
+case object MEMORY2REG extends AddressMode(0x5)
+case object OUTPUT_REG extends AddressMode(0x6)
+case object INPUT_REG extends AddressMode(0x7)
 
-case class AddressModeIllegal(override val code:Int) extends AddressMode:
+case class AddressModeIllegal(override val code:Int) extends AddressMode(code):
   override val isLegal: Boolean = false
 
 object AddressMode:
