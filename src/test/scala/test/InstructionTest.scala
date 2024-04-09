@@ -283,16 +283,16 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
 
   private def doTestLDx_RM(cpuStart: Cpu, instr: (Short, Short) => Instruction): Unit =
     forAll(TestUtils.addressGen, TestUtils.registerIndexGen, TestUtils.registerIndexGen):
-      (pc, r1, r2) =>
-        whenever(cpuStart.memory(cpuStart.register(r1)) != 0):
-          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r1, r2).value)
-          val r1Before = cpuBefore.register(r1) // this is to copy value in case one of registers is PC (it is increased)
-          val r2Before = cpuBefore.register(r2)
+      (pc, r, ra) =>
+        whenever(cpuStart.memory(cpuStart.register(r)) != 0):
+          val cpuBefore = cpuStart.setPc(pc.toShort).writeMemory(pc, instr(r, ra).value)
+          val rBefore = cpuBefore.register(r) // this is to copy value in case one of registers is PC (it is increased)
+          val raBefore = cpuBefore.register(ra)
           When("executed")
           val cpuAfter = cpuBefore.handleNext
           Then("memory at address from register 2 is loaded with register 1")
           //println(f"(R1)($r1): ${cpuAfter.register(r1)} R2($r2) after: ${cpuAfter.register(r2)} ${cpuAfter.memory(cpuAfter.register(r2))}  R2 before: ${cpuBefore.memory(cpuBefore.register(r2))}")
-          assert(cpuAfter.memory(r2Before) == r1Before)
+          assert(cpuAfter.memory(raBefore) == rBefore)
           And("PC is increased by 1")
           assert(cpuAfter.pc == (pc + 1).toShort)
 

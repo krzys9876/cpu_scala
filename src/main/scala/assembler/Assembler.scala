@@ -311,7 +311,7 @@ object Assembler:
   def expandPOP(line: AddressedLine): Vector[AtomicLine] =
     line.line match
       case Instruction1Line(Mnemonic1("POP"), r) =>
-        Vector(AtomicLine(line.address, Instruction2Line(Mnemonic2("LD"), Operand("M1"), r), line),
+        Vector(AtomicLine(line.address, Instruction2Line(Mnemonic2("LD"), r, Operand("M1")), line),
           AtomicLine(line.address + 1, Instruction1Line(Mnemonic1("INC"), Operand("R1")), line))
       case _ => expandDefault(line)
 
