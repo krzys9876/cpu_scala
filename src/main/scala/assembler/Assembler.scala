@@ -39,6 +39,7 @@ case class DataLine(value: Vector[Operand]) extends Line:
     copy(value = value.map(_.replace(map)))
   override def hasSymbols(map: Map[Operand, Operand]): Boolean = value.exists(v => map.keys.exists(_ == v))
   override def toString: String = f".DATA ${value.map(_.name).mkString(",")}"
+  override lazy val size: Int = value.length
 
 case class SymbolLine(symbol: Operand, value: Operand) extends Line:
   override def replaceSymbols(map: Map[Operand, Operand]): Line = copy(value = value.replace(map))
