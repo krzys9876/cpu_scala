@@ -350,7 +350,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 4)
       println(instructions.mkString("\n"))
       assert(instructions == Vector(
-        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("R3"), Operand("M1"))),
+        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R3"))),
         (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1"))),
         (0x12, Instruction1Line(Mnemonic1("JMP"), Operand("R3")))))
 
@@ -375,7 +375,7 @@ class AssemblerTest extends AnyFeatureSpec with ScalaCheckPropertyChecks with Gi
       val instructions = assembler.atomic.map(l => (l.address, l.line)).slice(1, 3)
       println(instructions.mkString("\n"))
       assert(instructions == Vector(
-        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("R6"), Operand("M1"))),
+        (0x10, Instruction2Line(Mnemonic2("LD"), Operand("M1"), Operand("R6"))),
         (0x11, Instruction1Line(Mnemonic1("INC"), Operand("R1")))))
 
 

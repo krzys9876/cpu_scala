@@ -37,9 +37,9 @@ class LineParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPr
     Scenario("parse LD MR"):
       forAll(TestUtils.registerIndexGen, TestUtils.registerIndexGen):
         (r1, r2) =>
-          assert(LineParser().process(f"LD M$r1%01X R$r2%01X").contains(INSTR_LD_MR(r1, r2)))
-          assert(LineParser().process(f"LDZ M$r1%01X R$r2%01X").contains(INSTR_LDZ_MR(r1, r2)))
-          assert(LineParser().process(f"LDNZ M$r1%01X R$r2%01X").contains(INSTR_LDNZ_MR(r1, r2)))
+          assert(LineParser().process(f"LD M$r1%01X R$r2%01X").contains(INSTR_LD_MR(r2, r1)))
+          assert(LineParser().process(f"LDZ M$r1%01X R$r2%01X").contains(INSTR_LDZ_MR(r2, r1)))
+          assert(LineParser().process(f"LDNZ M$r1%01X R$r2%01X").contains(INSTR_LDNZ_MR(r2, r1)))
 
     Scenario("parse LD RM"):
       forAll(TestUtils.registerIndexGen, TestUtils.registerIndexGen):
@@ -58,9 +58,9 @@ class LineParserTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPr
     Scenario("parse JMP M (JP (Rx) 0)"):
       forAll(TestUtils.registerIndexGen):
         r =>
-          assert(LineParser().process(f"JMP M$r%01X").contains(INSTR_LD_MR(r, 0)))
-          assert(LineParser().process(f"JMPZ M$r%01X").contains(INSTR_LDZ_MR(r, 0)))
-          assert(LineParser().process(f"JMPNZ M$r%01X").contains(INSTR_LDNZ_MR(r, 0)))
+          assert(LineParser().process(f"JMP M$r%01X").contains(INSTR_LD_MR(0, r)))
+          assert(LineParser().process(f"JMPZ M$r%01X").contains(INSTR_LDZ_MR(0, r)))
+          assert(LineParser().process(f"JMPNZ M$r%01X").contains(INSTR_LDNZ_MR(0, r)))
 
     Scenario("parse IN R P"):
       forAll(TestUtils.registerIndexGen, TestUtils.portGen):
