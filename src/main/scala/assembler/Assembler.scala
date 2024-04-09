@@ -119,14 +119,14 @@ case class AddressedLine(address: Int, line: Line, origLine: InputLine):
         (acc._1+1, acc._2 :+ AtomicLine(acc._1, DataLine(Vector(v)), this)))._2
       case Instruction0Line(_) | Instruction1Line(_, _) | Instruction2Line(_, _, _) => Assembler.expand(this)
       case _ => toAtomicDefault
-  override def toString: String = f"0x$address%04X ${line.toString} | ${origLine.toString}"
+  override def toString: String = f"0x$address%04X ${line.toString.padTo(12,' ')} | ${origLine.toString}"
 
 case class AtomicLine(address: Int, line: Line, origLine: AddressedLine):
   override def toString: String =
     val lineStr = line match
       case OrgLine(_) | LabelLine(_) | SymbolLine(_,_) => f"[${line.toString}]"
-      case _=> line.toString
-    f"0x$address%04X $lineStr | ${origLine.toString}"
+      case _=> f" ${line.toString}"
+    f"0x$address%04X ${lineStr.padTo(13,' ')} | ${origLine.toString}"
     
   def parseInstruction(toParse: String): Either[String, MachineCodeLine] =
     LineParser().process(toParse) match
@@ -153,7 +153,7 @@ case class MachineCodeLine(address: Int, value: Option[Short], instruction: Opti
   override def toString: String =
     val valueStr = if(value.isDefined) f"${value.get}%04X" else "[]"
     val instrStr = if(instruction.isDefined) instruction.get.toString else "[]"
-    f"$address%04X $valueStr $instrStr | ${origLine.toString}"
+    f"0x$address%04X ${valueStr.padTo(4,' ')} ${instrStr.padTo(10,' ')} | ${origLine.toString}"
 
 case class InputLine(num: Int, line: String):
   override def toString: String = f"$num%04d $line"
