@@ -5,12 +5,15 @@ sealed trait Opcode(val code: Int):
   val isAlu: Boolean = false
 
 case object LD extends Opcode(0x0)
-case object LDZ extends Opcode(0x6)
-case object LDNZ extends Opcode(0x7)
+case object LDZ extends Opcode(0x2)
+case object LDNZ extends Opcode(0x3)
 
 trait AluOpcode extends Opcode:
   override val isAlu: Boolean = true
 
+case object SHL extends Opcode(0x4) with AluOpcode
+case object SHR extends Opcode(0x5) with AluOpcode
+case object FLB extends Opcode(0x6) with AluOpcode
 case object ADD extends Opcode(0x8) with AluOpcode
 case object SUB extends Opcode(0x9) with AluOpcode
 case object INC extends Opcode(0xA) with AluOpcode
@@ -24,7 +27,7 @@ case class OpcodeIllegal(override val code:Int) extends Opcode(code):
   override val isLegal: Boolean = false
 
 object Opcode:
-  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),OpcodeIllegal(2),OpcodeIllegal(3),OpcodeIllegal(4),OpcodeIllegal(5),LDZ,LDNZ,ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
+  val codes:Vector[Opcode]=Vector(LD,OpcodeIllegal(1),LDZ,LDNZ,SHL,SHR,FLB,OpcodeIllegal(7),ADD,SUB,INC,DEC,CMP,AND,OR,XOR)
 
 sealed trait AddressMode(val code: Int):
   val isLegal: Boolean = true
@@ -99,8 +102,11 @@ case class INSTR_LDNZ_RM(r:Short,a:Short) extends Instruction(INSTR_LD_RM(r,a).v
 case class INSTR_LDNZ_RO(r: Short, p: Short) extends Instruction(INSTR_LD_RO(r, p).valueWithOpcode(LDNZ))
 case class INSTR_LDNZ_RI(r: Short, p: Short) extends Instruction(INSTR_LD_RI(r, p).valueWithOpcode(LDNZ))
 
-class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort) 
+class INSTR_ALU(code:Opcode,r1:Short,r2:Short) extends Instruction((code.code | (REGISTERS.code << 4) | ((r1 & 0x000F) << 8) | ((r2 & 0x000F) << 12)).toShort)
 
+case class INSTR_SHL(r1: Short, r2: Short) extends INSTR_ALU(SHL, r1, r2)
+case class INSTR_SHR(r1: Short, r2: Short) extends INSTR_ALU(SHR, r1, r2)
+case class INSTR_FLB(r1: Short, r2: Short) extends INSTR_ALU(FLB, r1, r2)
 case class INSTR_ADD(r1:Short,r2:Short) extends INSTR_ALU(ADD,r1,r2)
 case class INSTR_SUB(r1:Short,r2:Short) extends INSTR_ALU(SUB,r1,r2)
 case class INSTR_INC(r1:Short) extends INSTR_ALU(INC,r1,0)

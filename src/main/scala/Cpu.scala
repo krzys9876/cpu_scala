@@ -117,11 +117,14 @@ case class MemoryImmutable(m:Vector[Short] = Vector.fill[Short](0xFFFF+1)(0.toSh
     copy(m = m.updated(actualAddress, value))
 
 enum AluOp:
-  case Add, Sub, Inc, Dec, And, Or, Xor, Compare
+  case Shl, Shr, Flb, Add, Sub, Inc, Dec, And, Or, Xor, Compare
 
 object Alu:
   def apply(a:Short,b:Short,f:Short,code:Opcode):(Short,Short) =
     val oper = code match
+      case SHL => AluOp.Shl
+      case SHR => AluOp.Shr
+      case FLB => AluOp.Flb
       case ADD => AluOp.Add
       case SUB => AluOp.Sub
       case INC => AluOp.Inc
@@ -135,6 +138,8 @@ object Alu:
 
   private def calculate(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
     op match
+      case AluOp.Shl | AluOp.Shr => shift(b,f,op)
+      //case AluOp.Add => add(a,b,f)
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)
       case AluOp.Inc => add(a,1,f) // ignore b
@@ -169,5 +174,16 @@ object Alu:
     val newF = f & 0xFFFE | bool2bit(zero)
     //println(f"a $a b $b r $result f $newF $newF%04X")
     (a, newF.toShort)
+
+  private def shift(b: Short, f: Short, op:AluOp):(Short,Short) =
+    val (result, carry, borrow) = op match
+      case AluOp.Shl => (b << 1, (b & 0x8000)>0, false)
+      case AluOp.Shr => (b >> 1, false, (b & 0x8001)>0)
+      case _ => throw IllegalArgumentException(f"shift operation not supported: $op")
+
+    val zero = result == 0
+    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
+    println(f"b $b%04X r $result%04X f $newF $newF%04X")
+    (result.toShort, newF.toShort)
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
