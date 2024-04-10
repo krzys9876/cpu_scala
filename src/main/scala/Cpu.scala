@@ -165,7 +165,7 @@ object Alu:
 
     val newF = f & 0xFFFE | result2zeroFlag(result)
     //println(f"a $a b $b r $result f $newF $newF%04X op: $op")
-    (result.toShort, newF.toShort)
+    (result, newF.toShort)
 
   private def compare(a: Short, b: Short, f: Short): (Short, Short) =
     val result = if(a==b) 1 else 0
@@ -188,7 +188,7 @@ object Alu:
     val result = (((b & 0x00FF) << 8) | ((b & 0xFF00) >> 8)).toShort
     val newF = composeFlags(f, result)
     //println(f"b $b%04X r $result%04X f $newF $newF%04X")
-    (result, newF.toShort)
+    (result, newF)
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
   private def result2zeroFlag(result:Short):Int = if (result==0) 1 else 0
