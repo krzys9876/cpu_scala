@@ -163,16 +163,15 @@ object Alu:
       case _ => throw IllegalArgumentException(f"bitwise operation not supported: $op")
       ).toShort
 
-    val newF = f & 0xFFFE | result2zeroFlag(result)
+    val newF = composeFlags(f, result)
     //println(f"a $a b $b r $result f $newF $newF%04X op: $op")
-    (result, newF.toShort)
+    (result, newF)
 
   private def compare(a: Short, b: Short, f: Short): (Short, Short) =
-    val result = if(a==b) 1 else 0
-    val zero = result == 1
-    val newF = f & 0xFFFE | bool2bit(zero)
+    val result = (if(a==b) 0 else 1).toShort // 0 means: set ZERO flag, which is what we want here
+    val newF = composeFlags(f, result)
     //println(f"a $a b $b r $result f $newF $newF%04X")
-    (a, newF.toShort)
+    (a, newF)
 
   private def shift(b: Short, f: Short, op:AluOp):(Short,Short) =
     val (result, carry, borrow) = op match
@@ -195,4 +194,4 @@ object Alu:
   private def composeFlags(f: Short, carry: Boolean, borrow: Boolean, result: Short): Short =
     (f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)).toShort
   private def composeFlags(f: Short, result: Short): Short =
-    (f & 0xFFF8 | result2zeroFlag(result)).toShort
+    (f & 0xFFFE | result2zeroFlag(result)).toShort
