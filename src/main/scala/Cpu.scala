@@ -139,7 +139,7 @@ object Alu:
   private def calculate(a:Short,b:Short,f:Short,op:AluOp):(Short,Short) =
     op match
       case AluOp.Shl | AluOp.Shr => shift(b,f,op)
-      //case AluOp.Add => add(a,b,f)
+      case AluOp.Flb => flipBytes(b,f)
       case AluOp.Add => add(a,b,f)
       case AluOp.Sub => add(a,(-b).toShort,f)
       case AluOp.Inc => add(a,1,f) // ignore b
@@ -151,20 +151,19 @@ object Alu:
     val result = (a + b).toShort
     val carry = (a > 0 && b > 0) && result < 0
     val borrow = (a < 0 && b < 0) && result > 0
-    val zero = result == 0
-    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
+    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)
     //println(f"a $a b $b r $result f $newF $newF%04X")
     (result, newF.toShort)
 
   private def bitwise(a: Short, b: Short, f: Short, op:AluOp):(Short,Short) =
-    val result = op match
+    val result = (op match
       case AluOp.And => a & b
       case AluOp.Or => a | b
       case AluOp.Xor => a ^ b
       case _ => throw IllegalArgumentException(f"bitwise operation not supported: $op")
+      ).toShort
 
-    val zero = result == 0
-    val newF = f & 0xFFFE | bool2bit(zero)
+    val newF = f & 0xFFFE | result2zeroFlag(result)
     //println(f"a $a b $b r $result f $newF $newF%04X op: $op")
     (result.toShort, newF.toShort)
 
@@ -177,13 +176,19 @@ object Alu:
 
   private def shift(b: Short, f: Short, op:AluOp):(Short,Short) =
     val (result, carry, borrow) = op match
-      case AluOp.Shl => (b << 1, (b & 0x8000)>0, false)
-      case AluOp.Shr => (b >> 1, false, (b & 0x8001)>0)
+      case AluOp.Shl => ((b << 1).toShort, (b & 0x8000)>0, false)
+      case AluOp.Shr => ((b >> 1).toShort, false, (b & 0x8001)>0)
       case _ => throw IllegalArgumentException(f"shift operation not supported: $op")
 
-    val zero = result == 0
-    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | bool2bit(zero)
-    println(f"b $b%04X r $result%04X f $newF $newF%04X")
+    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)
+    //println(f"b $b%04X r $result%04X f $newF $newF%04X")
     (result.toShort, newF.toShort)
 
+  private def flipBytes(b: Short, f: Short): (Short, Short) =
+    val result = (((b & 0x00FF) << 8) | ((b & 0xFF00) >> 8)).toShort
+    val newF = f & 0xFFFE | result2zeroFlag(result)
+    //println(f"b $b%04X r $result%04X f $newF $newF%04X")
+    (result, newF.toShort)
+
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
+  private def result2zeroFlag(result:Short):Int = if (result==0) 1 else 0

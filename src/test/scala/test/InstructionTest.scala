@@ -189,6 +189,10 @@ class InstructionTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckP
       Given("a CPU in random state with SHR r1,r2 as next instruction (excl. pc, fl)")
       doTestALU(TestUtils.createRandomStateCpu, INSTR_SHR.apply, SHR)
 
+    Scenario("handle FLB (r1= r2L <=> f2H)"):
+      Given("a CPU in random state with FLB r1,r2 as next instruction (excl. pc, fl)")
+      doTestALU(TestUtils.createRandomStateCpu, INSTR_FLB.apply, FLB)
+
   private def doTestNOP(cpuStart: Cpu, instr: Instruction): Unit =
     forAll(TestUtils.addressGen):
       pc =>
