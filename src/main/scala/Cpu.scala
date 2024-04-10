@@ -151,9 +151,9 @@ object Alu:
     val result = (a + b).toShort
     val carry = (a > 0 && b > 0) && result < 0
     val borrow = (a < 0 && b < 0) && result > 0
-    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)
+    val newF = composeFlags(f, carry, borrow, result)
     //println(f"a $a b $b r $result f $newF $newF%04X")
-    (result, newF.toShort)
+    (result, newF)
 
   private def bitwise(a: Short, b: Short, f: Short, op:AluOp):(Short,Short) =
     val result = (op match
@@ -180,15 +180,19 @@ object Alu:
       case AluOp.Shr => ((b >> 1).toShort, false, (b & 0x8001)>0)
       case _ => throw IllegalArgumentException(f"shift operation not supported: $op")
 
-    val newF = f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)
+    val newF = composeFlags(f, carry, borrow, result)
     //println(f"b $b%04X r $result%04X f $newF $newF%04X")
-    (result.toShort, newF.toShort)
+    (result, newF)
 
   private def flipBytes(b: Short, f: Short): (Short, Short) =
     val result = (((b & 0x00FF) << 8) | ((b & 0xFF00) >> 8)).toShort
-    val newF = f & 0xFFFE | result2zeroFlag(result)
+    val newF = composeFlags(f, result)
     //println(f"b $b%04X r $result%04X f $newF $newF%04X")
     (result, newF.toShort)
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
   private def result2zeroFlag(result:Short):Int = if (result==0) 1 else 0
+  private def composeFlags(f: Short, carry: Boolean, borrow: Boolean, result: Short): Short =
+    (f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)).toShort
+  private def composeFlags(f: Short, result: Short): Short =
+    (f & 0xFFF8 | result2zeroFlag(result)).toShort
