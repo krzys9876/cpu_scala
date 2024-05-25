@@ -40,22 +40,22 @@ Output a value from <code>Rx</code> to output port <code>y</code>
 Input a value from input port <code>x</code> to <code>Rx</code>
 
 ### ADD Rx, Ry
-Add value of <code>Rx</code> to <code>Ry</code>, i.e. <code>Rx + Ry --> Ry</code>, set flags accordingly
+Add value of <code>Ry</code> to <code>Rx</code>, i.e. <code>Rx += Ry</code>, set flags accordingly
 
 ### SUB Rx, Ry
-Subtract value of <code>Rx</code> from <code>Ry</code>, i.e. <code>Rx - Ry --> Ry</code>, set flags accordingly
+Subtract value of <code>Rx</code> from <code>Ry</code>, i.e. <code>Rx -= Ry</code>, set flags accordingly
 
 ### CMP Rx, Ry
 Compare value of <code>Rx</code> to <code>Ry</code>, only set flags
 
 ### AND Rx, Ry
-Binary AND <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx & Ry --> Ry</code>, set flags accordingly
+Binary AND <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx &= Ry</code>, set flags accordingly
 
 ### OR Rx, Ry
-Binary OR <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx | Ry --> Ry</code>, set flags accordingly
+Binary OR <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx |= Ry</code>, set flags accordingly
 
 ### XOR Rx, Ry
-Binary XOR <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx ^ Ry --> Ry</code>, set flags accordingly
+Binary XOR <code>Rx</code> with <code>Ry</code>, i.e. <code>Rx ^= Ry</code>, set flags accordingly
 
 ### INC Rx
 Increase value of <code>Rx</code>, set flags accordingly
