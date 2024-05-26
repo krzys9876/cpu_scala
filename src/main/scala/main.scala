@@ -16,7 +16,7 @@ def main(args: String*): Unit =
 
   val lines: Vector[String] = Try(Files.readAllLines(filePath)) match
     case Success(lines) => lines.asScala.toVector
-    case Failure(e) => println(f"Error occured reading file: ${filePath}\n${e.getClass.getName} / ${e.getMessage}")
+    case Failure(e) => println(f"Error occured reading file: $filePath\n${e.getClass.getName} / ${e.getMessage}")
       scala.sys.exit(1)
 
   println(f"${lines.length} lines read from file ${filePath.getFileName} (${filePath.toAbsolutePath})")
@@ -46,7 +46,7 @@ def main(args: String*): Unit =
   val withProgram = code.foldLeft(cpu)((cpuProgrammed,line)=>
       cpuProgrammed.writeMemory(line.address,line.value.getOrElse(0.toShort)))
 
-  val after = withProgram.handleNext(progArgs.programSteps)
+  val after = withProgram.handleNext(progArgs.programSteps, progArgs.waitEvery)
   println("\n"+after.register.toString)
   if(progArgs.printMemoryFrom()>=0)
     val rows = (progArgs.printMemoryTo() - progArgs.printMemoryFrom()) / progArgs.printMemoryRow()
@@ -60,6 +60,7 @@ class Args(args: Array[String]) extends ArgsAsClass(args) {
   val asmFile:Argument[String] = Argument.required
   private val stepsM:Argument[Double] = Argument.optional(-1.0)
   private val steps:Argument[Long] = Argument.optional(-1)
+  val waitEvery:Argument[Long] = Argument.optional(0)
   val printMemoryFrom:Argument[Int] = Argument.optional(-1)
   val printMemoryTo:Argument[Int] = Argument.optional(-1)
   val printMemoryRow:Argument[Int] = Argument.optional(-1)

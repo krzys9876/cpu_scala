@@ -7,6 +7,6 @@ case class Program(instructions: Vector[InstructionLine]):
     cpuMemoryInit.reset
 
   def run: Cpu = init.handleInfinitely
-  def run(steps: Long): Cpu = init.handleNext(steps)
+  def run(steps: Long, waitEvery: Long = 0): Cpu = init.handleNext(steps, waitEvery)
 
 case class InstructionLine(address: Short, instr: Instruction)

@@ -29,11 +29,12 @@ case class Cpu(handler:CpuHandler, register:Register, memory:Memory, outputFile:
   def input(port:Short, reg: Short): Cpu = handler.input(this, port, reg)
   def handleNext:Cpu = handler.handle(this, Instruction(memory(pc)))
   @tailrec
-  final def handleNext(steps:Long):Cpu =
+  final def handleNext(steps:Long, waitEvery: Long = 0):Cpu =
     assume(steps >= 0)
+    if((waitEvery>0) && (steps % waitEvery == 0)) Thread.sleep(1)
     steps match
       case 0 => this
-      case _ => handleNext.handleNext(steps-1)
+      case _ => handleNext.handleNext(steps-1, waitEvery)
   @tailrec
   final def handleInfinitely:Cpu =
     handleNext.handleInfinitely
