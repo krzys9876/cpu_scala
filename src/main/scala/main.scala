@@ -48,12 +48,21 @@ def main(args: String*): Unit =
 
   val after = withProgram.handleNext(progArgs.programSteps)
   println("\n"+after.register.toString)
+  if(progArgs.printMemoryFrom()>=0)
+    val rows = (progArgs.printMemoryTo() - progArgs.printMemoryFrom()) / progArgs.printMemoryRow()
+    for(row <- 0 until rows)
+      println()
+      for(col <- 0 until progArgs.printMemoryRow())
+        print(f"${after.memory(progArgs.printMemoryFrom() + row * progArgs.printMemoryRow() + col)}%04X ")
 
 
 class Args(args: Array[String]) extends ArgsAsClass(args) {
   val asmFile:Argument[String] = Argument.required
   private val stepsM:Argument[Double] = Argument.optional(-1.0)
   private val steps:Argument[Long] = Argument.optional(-1)
+  val printMemoryFrom:Argument[Int] = Argument.optional(-1)
+  val printMemoryTo:Argument[Int] = Argument.optional(-1)
+  val printMemoryRow:Argument[Int] = Argument.optional(-1)
 
   parse()
 
@@ -62,3 +71,6 @@ class Args(args: Array[String]) extends ArgsAsClass(args) {
     else
       if(stepsM() <= 0.0 || stepsM() > (Long.MaxValue/1000000)) Long.MaxValue else (stepsM()*1000000.0).toLong
 }
+
+//TODO:
+// test for non-existing label (eg. LDA some_random_label)
