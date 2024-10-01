@@ -148,11 +148,14 @@ object Alu:
       case AluOp.And | AluOp.Or | AluOp.Xor => bitwise(a,b,f,op)
       case AluOp.Compare => compare(a,b,f)
 
+  private def toUnsigned(n: Short): Int = if(n<0) n+65536 else n
+
   private def add(a: Short, b: Short, f: Short):(Short,Short) =
     val result = (a + b).toShort
-    val carry = (a > 0 && b > 0) && result < 0
-    val borrow = (a < 0 && b < 0) && result > 0
-    val newF = composeFlags(f, carry, borrow, result)
+    //NOTE: carry flag may be treated as reversed borrow when using signed negative numbers
+    // see: https://en.wikipedia.org/wiki/Carry_flag#Vs._borrow_flag
+    val carry = (toUnsigned(a)+toUnsigned(b)) > 65535 // (a > 0 && b > 0) && result < 0
+    val newF = composeFlags(f, carry, result)
     //println(f"a $a b $b r $result f $newF $newF%04X")
     (result, newF)
 
@@ -175,12 +178,12 @@ object Alu:
     (a, newF)
 
   private def shift(b: Short, f: Short, op:AluOp):(Short,Short) =
-    val (result, carry, borrow) = op match
-      case AluOp.Shl => ((b << 1).toShort, (b & 0x8000)>0, false)
-      case AluOp.Shr => ((b >> 1).toShort, false, (b & 0x8001)>0)
+    val (result, carry) = op match
+      case AluOp.Shl => ((b << 1).toShort, (b & 0x8000)>0)
+      case AluOp.Shr => ((b >> 1).toShort, (b & 0x8001)>0)
       case _ => throw IllegalArgumentException(f"shift operation not supported: $op")
 
-    val newF = composeFlags(f, carry, borrow, result)
+    val newF = composeFlags(f, carry, result)
     //println(f"b $b%04X r $result%04X f $newF $newF%04X")
     (result, newF)
 
@@ -192,7 +195,7 @@ object Alu:
 
   private def bool2bit(bool:Boolean):Int = if (bool) 1 else 0
   private def result2zeroFlag(result:Short):Int = if (result==0) 1 else 0
-  private def composeFlags(f: Short, carry: Boolean, borrow: Boolean, result: Short): Short =
-    (f & 0xFFF8 | (bool2bit(carry) << 2) | (bool2bit(borrow) << 1) | result2zeroFlag(result)).toShort
+  private def composeFlags(f: Short, carry: Boolean, result: Short): Short =
+    (f & 0xFFF8 | (bool2bit(carry) << 1) | result2zeroFlag(result)).toShort
   private def composeFlags(f: Short, result: Short): Short =
     (f & 0xFFFE | result2zeroFlag(result)).toShort

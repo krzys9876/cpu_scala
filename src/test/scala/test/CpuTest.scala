@@ -108,40 +108,34 @@ class CpuTest extends AnyFeatureSpec with GivenWhenThen with ScalaCheckPropertyC
     Scenario("add the same numbers with opposite signs"):
       Given("a (small) positive number")
       When("the same numbers are added with opposite signs")
-      Then("result is 0 and zero flag is set")
+      Then("result is 0 and zero flag is set and carry flag is set (reversed borrow)")
       forAll(TestUtils.smallPositiveValueGen):
-        a => assert(Alu(a, (-a).toShort, 0xFF00.toShort, ADD) == (0, 0xFF01.toShort))
+        a => assert(Alu(a, (-a).toShort, 0xFF00.toShort, ADD) == (0, 0xFF03.toShort))
 
-    Scenario("add with carry"):
-      Given("two different (large) positive numbers")
+    Scenario("add with carry (unsigned)"):
+      Given("two different (large) positive unsigned numbers")
       When("added")
       Then("result is sum trimmed to 16b and carry flag is set")
       //NOTE: forAll may sometimes not respect Gen min/max values due to defect in ScalaCheck
-      forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu(a,b,0xFF00.toShort,ADD) == ((a+b).toShort,0xFF04.toShort))
+      //NOTE2: we use unsigned arithmetic here - i.e. small negative numer = large positive (unsigned) number 
+      forAll(TestUtils.smallPositiveValueGen, TestUtils.smallPositiveValueGen):
+        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort,ADD) == ((-a-b).toShort,0xFF02.toShort))
 
-    Scenario("add negative numbers w/o borrow"):
+    Scenario("add negative number to larger positive number"):
       Given("two different (small) negative numbers")
       When("added")
-      Then("result is (negative) sum trimmed to 16b and flags are off")
-      forAll(TestUtils.smallPositiveValueGen, TestUtils.smallPositiveValueGen):
-        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, ADD) == ((-(a + b)).toShort, 0xFF00.toShort))
+      Then("result is (negative) sum trimmed to 16b and carry flag is set (reversed borrow)")
+      forAll(TestUtils.smallPositiveValueGen):
+        a => assert(Alu(a, (-a+2).toShort, 0xFF00.toShort, ADD) == (2.toShort, 0xFF02.toShort))
 
-    Scenario("add negative numbers with borrow"):
-      Given("two different (large) negative numbers")
+    Scenario("add negative number to smaller positive number"):
+      Given("two different (small) negative numbers")
       When("added")
-      Then("result is sum trimmed to (positive) 16b and borrow flag is set")
-      forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => assert(Alu((-a).toShort, (-b).toShort, 0xFF00.toShort, ADD) == ((-(a + b)).toShort, 0xFF02.toShort))
-
-    Scenario("add large numbers with opposite signs"):
-      Given("two different (large) numbers with opposite signs")
-      When("added")
-      Then("result is sum trimmed to 16b and flags are off")
-      forAll(TestUtils.largePositiveValueGen, TestUtils.largePositiveValueGen):
-        (a, b) => whenever(a != b) // ensure zero flag not set
-          assert(Alu(a, (-b).toShort, 0xFF00.toShort, ADD) == ((a - b).toShort, 0xFF00.toShort))
-
+      Then("result is (negative) sum trimmed to 16b and carry flag is reset (reversed borrow)")
+      //NOTE: when using signed numbers carry flag is equivalent to reversed borrow
+      forAll(TestUtils.smallPositiveValueGen):
+        a => assert(Alu(a, (-a - 2).toShort, 0xFF00.toShort, ADD) == (((-2).toShort, 0xFF00.toShort)))
+    
     Scenario("express Sub as Add with second operand negated"):
       Given("two different numbers")
       When("subtracted")
