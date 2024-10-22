@@ -63,7 +63,11 @@ Increase value of <code>Rx</code>, set flags accordingly
 ### DEC Rx
 Decrease value of <code>Rx</code>, set flags accordingly
 
-### TBD: SHL, SHR, FLB
+### SHL, SHR
+Shift bits left / right
+
+### FLB
+Flip bytes (in 2-byte word)
 
 ## Macros
 
